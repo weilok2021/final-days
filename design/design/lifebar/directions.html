@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lifebar directions</title>
+<style>
+  :root{--ink:#1f2430;--muted:#6b7280;--line:#e5e7eb;--bg:#fafaf9;--card:#fff;--accent:#c2410c;--rest:#e7e5e4;--rest-dark:#27272a;
+        --life:linear-gradient(90deg,#16a34a 0%,#eab308 50%,#dc2626 100%)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:1040px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-size:30px;font-weight:600;letter-spacing:-.01em;margin:0 0 8px}
+  h2{font-size:20px;font-weight:600;margin:60px 0 6px}
+  h3{font-size:15px;font-weight:600;margin:26px 0 6px}
+  p{margin:0 0 12px}
+  .sub{color:var(--muted);margin:0 0 20px;max-width:720px}
+  .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:8px;vertical-align:middle;font-weight:400}
+  .tag.rec{border-color:var(--accent);color:var(--accent)}
+  .controls{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:24px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  .fixed{font-size:15px;padding:8px 0;color:var(--ink)}
+  .stats{display:flex;gap:28px;margin-left:auto}
+  .stat b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+  .stat span{font-size:12px;color:var(--muted)}
+  /* life bar: full-length gradient, remaining part covered in grey */
+  .life{position:relative;background:var(--life);overflow:hidden}
+  .life .rest{position:absolute;right:0;top:0;bottom:0;background:var(--rest)}
+  .life.dark .rest{background:var(--rest-dark)}
+  .frame{position:relative;width:100%;aspect-ratio:16/9;background:#0f172a;border-radius:10px;overflow:hidden;border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.08);font-size:11px}
+  .taskbar{position:absolute;left:0;right:0;bottom:0;height:24px;background:#eef1f6;border-top:1px solid #d5d9e0;display:flex;justify-content:center;align-items:center;gap:8px}
+  .taskbar i{width:12px;height:12px;border-radius:3px;background:#94a3b8;display:block}
+  .taskbar i:first-child{background:#3b82f6}
+  .win{position:absolute;left:0;right:0;bottom:24px;background:#fff}
+  .win .bar{height:18px;background:#f1f3f5;border-bottom:1px solid #e2e5ea;display:flex;align-items:center;padding:0 8px;gap:6px;color:#64748b}
+  .win .bar i{width:7px;height:7px;border-radius:50%;background:#cbd5e1;display:block}
+  .win .body{padding:18px 26px;color:#94a3b8}
+  .win .body div{height:8px;background:#f1f3f5;border-radius:4px;margin:0 0 10px}
+  .strip{position:absolute;left:0;right:0;top:0;height:2px}
+  .zoom{margin-top:14px;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:14px 16px}
+  .zoom .label{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .zoombar{height:26px;border-radius:2px}
+  .tip{display:inline-block;margin-top:10px;background:#1f2430;color:#fff;font-size:12px;padding:6px 10px;border-radius:6px;font-variant-numeric:tabular-nums}
+  /* reserved vs overlay detail */
+  .detail{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+  .dpanel{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+  .dpanel .cap{font-size:12px;color:var(--muted);padding:10px 12px;border-top:1px solid var(--line)}
+  .dpanel .cap b{color:var(--ink)}
+  .dscreen{position:relative;height:128px;background:#0f172a;overflow:hidden}
+  .dstrip{position:absolute;left:0;right:0;top:0;height:16px;z-index:2}
+  .dwin{position:absolute;left:0;right:0;bottom:0}
+  .dtabs{height:48px;background:#dee1e6;display:flex;align-items:flex-end;padding:0 16px;gap:6px}
+  .dtab{width:150px;height:44px;background:#fff;border-radius:12px 12px 0 0;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#334155}
+  .dtab.in{background:#cfd3d9;color:#64748b}
+  .dnav{height:44px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;padding:0 16px;gap:10px;color:#94a3b8;font-size:13px}
+  .dnav i{display:block;height:24px;flex:1;background:#f1f3f5;border-radius:12px}
+  .dbody{height:40px;background:#fff}
+  .moment{position:absolute;inset:0;background:#0b0d12;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  .moment .big{font-size:88px;font-weight:600;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+  .moment .l1{font-size:15px;color:#a1a1aa;margin-top:10px}
+  .moment .q{font-size:17px;margin-top:36px;color:#e4e4e7;font-style:italic}
+  .moment .foot{position:absolute;bottom:18px;font-size:10px;color:#52525b}
+  .momentbar{position:absolute;left:0;right:0;top:0;height:3px}
+  .wall{position:absolute;inset:0;background:#f5f5f4}
+  .icons{position:absolute;left:14px;top:14px;display:grid;gap:12px}
+  .icons i{display:block;width:16px;height:16px;border-radius:4px;background:#cbd5e1}
+  .grid{position:absolute;right:40px;top:50%;transform:translateY(-50%);display:grid;grid-template-columns:repeat(52,var(--cell));gap:1px}
+  .grid i{display:block;width:var(--cell);height:var(--cell);background:#e7e5e4;border-radius:1px}
+  .grid i.on{background:#1f2430}
+  .grid i.now{background:var(--accent)}
+  .gridcap{position:absolute;right:40px;bottom:40px;font-size:10px;color:#78716c;text-align:right}
+  .gate{position:absolute;inset:0;background:rgba(11,13,18,.92);color:#fff;display:flex;align-items:center;justify-content:center}
+  .gate .card{text-align:center;max-width:70%}
+  .gate .app{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#a1a1aa}
+  .gate .n{font-size:40px;font-weight:600;margin:10px 0 4px;font-variant-numeric:tabular-nums}
+  .gate .t{font-size:13px;color:#d4d4d8}
+  .gate .cd{width:260px;height:3px;background:#27272a;margin:26px auto 16px;position:relative}
+  .gate .cd span{position:absolute;left:0;top:0;bottom:0;width:38%;background:#f4f4f5}
+  .gate .btns{display:flex;gap:10px;justify-content:center}
+  .gate button{font:inherit;font-size:12px;padding:7px 14px;border-radius:6px;border:1px solid #3f3f46;background:transparent;color:#fff}
+  .gate button.p{background:#fff;color:#0b0d12;border-color:#fff}
+  .gate button.dis{opacity:.4}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+  td:first-child{font-weight:600;white-space:nowrap}
+  .rec{border:1px solid var(--accent);border-radius:12px;padding:20px 22px;margin-top:20px;background:#fff7ed}
+  .rec h3{margin:0 0 8px;font-size:16px}
+  .rec ol{margin:0;padding-left:20px}
+  .rec li{margin:6px 0}
+  .note{font-size:13px;color:var(--muted)}
+  @media (max-width:760px){.detail{grid-template-columns:1fr}.moment .big{font-size:56px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Lifebar: four ways to keep the number in view</h1>
+  <p class="sub">The book's point is that a life is about 30,000 days and today is one of them. The software's only job is to make sure you never forget it. Below are the candidate forms, each rendered on a mock 1920×1080 desktop. Put in your date of birth; every mockup updates. Lifespan is fixed at 80 years and is not a user setting.</p>
+
+  <div class="controls">
+    <div><label for="birth">Date of birth (the only input)</label><input type="date" id="birth"></div>
+    <div><label>Lifespan</label><div class="fixed">80 years, fixed · <span data-v="total"></span> days</div></div>
+    <div class="stats">
+      <div class="stat"><b data-v="lived">–</b><span>days lived</span></div>
+      <div class="stat"><b data-v="left">–</b><span>days left</span></div>
+      <div class="stat"><b data-v="pct">–</b><span>of life used</span></div>
+    </div>
+  </div>
+
+  <h2>A. Edge strip <span class="tag rec">recommended, always on</span></h2>
+  <p class="sub">A 4-pixel bar along the very top of the primary monitor, filled from the left as life passes. The colour runs green at birth, through yellow at mid-life, to red at the end; the part not yet lived is grey. So at 30 the visible fill is green, at 45 it has reached yellow, at 65 it is turning red. No icon, no text. Hovering the strip shows one line of numbers.</p>
+
+  <div class="frame">
+    <div class="strip life"><div class="rest" data-rest></div></div>
+    <div class="win" style="top:2px"><div class="bar"><i></i><i></i><i></i>&nbsp; a maximized window, sitting just below the strip</div>
+      <div class="body"><div style="width:40%"></div><div style="width:70%"></div><div style="width:55%"></div><div style="width:65%"></div><div style="width:30%"></div></div></div>
+    <div class="taskbar"><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+  <div class="zoom">
+    <div class="label">Same strip, magnified 12×, with the hover label</div>
+    <div class="zoombar life"><div class="rest" data-rest></div></div>
+    <div class="tip">Day <span data-v="lived"></span> of <span data-v="total"></span> · <span data-v="left"></span> days left</div>
+  </div>
+
+  <h3>Why "reserved edge" matters: the top-left corner of the screen at 4× zoom</h3>
+  <p class="note">A maximized window (the square button, app fills the screen) normally covers everything except the taskbar. Windows keeps the taskbar's area reserved so no app can cover it. The strip asks Windows for the same treatment at the top edge. Result: the screen behaves as if it were 1920×1076, the top 4 pixels belong to the bar, and nothing ever overlaps in either direction.</p>
+  <div class="detail">
+    <div class="dpanel">
+      <div class="dscreen">
+        <div class="dstrip life"><div class="rest" data-rest></div></div>
+        <div class="dwin" style="top:16px">
+          <div class="dtabs"><div class="dtab">Gmail</div><div class="dtab in">Docs</div><div class="dtab in">YouTube</div></div>
+          <div class="dnav">‹ › ↻ <i></i></div><div class="dbody"></div>
+        </div>
+      </div>
+      <div class="cap"><b>Reserved edge (proposed).</b> The window is 4 px shorter. Browser tabs are intact.</div>
+    </div>
+    <div class="dpanel">
+      <div class="dscreen">
+        <div class="dstrip life"><div class="rest" data-rest></div></div>
+        <div class="dwin" style="top:0">
+          <div class="dtabs"><div class="dtab">Gmail</div><div class="dtab in">Docs</div><div class="dtab in">YouTube</div></div>
+          <div class="dnav">‹ › ↻ <i></i></div><div class="dbody"></div>
+        </div>
+      </div>
+      <div class="cap"><b>Floating overlay (not proposed).</b> Same bar sits on top of the window and shaves the top of the tabs.</div>
+    </div>
+  </div>
+
+  <h2>B. Daily moment <span class="tag rec">recommended, once a day</span></h2>
+  <p class="sub">A persistent bar fades into the wallpaper within a week; everyone stops seeing what never changes. The fix is one deliberate moment per day: the first time you unlock the PC each morning, the whole screen goes dark and shows today's number. One click dismisses it. It costs about three seconds and it is the thing that actually re-installs the fact in your head.</p>
+  <div class="frame">
+    <div class="moment">
+      <div class="momentbar life dark"><div class="rest" data-rest></div></div>
+      <div class="big" data-v="left">–</div>
+      <div class="l1">days left · day <span data-v="lived"></span> of <span data-v="total"></span></div>
+      <div class="q">Is today worth one of your remaining <span data-v="left"></span> days?</div>
+      <div class="foot">shown once, at the first unlock of the day · click anywhere to continue</div>
+    </div>
+  </div>
+
+  <h2>C. Wallpaper grid <span class="tag">alternative or bonus</span></h2>
+  <p class="sub">Your life as a grid of weeks, one square per week, 52 per row, regenerated as the desktop wallpaper every night. Very striking, and free to add once the numbers exist. Its weakness is that a maximized window hides it completely, so it cannot be the primary carrier on its own.</p>
+  <div class="frame">
+    <div class="wall">
+      <div class="icons"><i></i><i></i><i></i><i></i></div>
+      <div class="grid" id="grid"></div>
+      <div class="gridcap">one square = one week · <span data-v="weeksleft"></span> squares left</div>
+    </div>
+    <div class="taskbar"><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+
+  <h2>D. Friction gate <span class="tag">optional app-block layer</span></h2>
+  <p class="sub">Instead of hard-blocking apps (which people switch off within a week), the lifebar steps in front of a listed app when it comes to the foreground. It shows the cost and makes you wait ten seconds before the "open anyway" button works. Close it, or go through consciously. The list of apps and sites is yours to set; a hard-block mode can be added later if the pause is not enough.</p>
+  <div class="frame">
+    <div class="win" style="top:0"><div class="bar"><i></i><i></i><i></i>&nbsp; YouTube</div></div>
+    <div class="taskbar"><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="gate">
+      <div class="card">
+        <div class="app">You opened YouTube</div>
+        <div class="n"><span data-v="left"></span> days left</div>
+        <div class="t">Today is one of your remaining <span data-v="left"></span> days. You have already spent 41 minutes of it here.</div>
+        <div class="cd"><span></span></div>
+        <div class="btns"><button class="p">Close it</button><button class="dis">Open anyway (6 s)</button></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>How they compare</h2>
+  <table>
+    <thead><tr><th>Form</th><th>Visible with windows maximized</th><th>Intrusiveness</th><th>Resists habituation</th><th>Build effort</th></tr></thead>
+    <tbody>
+      <tr><td>A. Edge strip</td><td>Yes, always (reserves 4 px)</td><td>Near zero</td><td>Low on its own</td><td>Small</td></tr>
+      <tr><td>B. Daily moment</td><td>Yes (full screen, once)</td><td>3 seconds a day</td><td>High, the number changes daily</td><td>Small</td></tr>
+      <tr><td>C. Wallpaper grid</td><td>No</td><td>Zero</td><td>Medium</td><td>Small</td></tr>
+      <tr><td>D. Friction gate</td><td>Yes, when triggered</td><td>Only when you reach for a listed app</td><td>High</td><td>Medium</td></tr>
+    </tbody>
+  </table>
+
+  <div class="rec">
+    <h3>Recommendation</h3>
+    <ol>
+      <li><b>Build A + B together as one tiny always-running program.</b> A keeps the fact in the corner of your eye all day; B makes sure you actually read it once a day. Neither works well alone.</li>
+      <li><b>Add C for free</b> once the numbers exist: a nightly wallpaper render is twenty lines.</li>
+      <li><b>Do D as a second phase</b>, only after living with A + B for two weeks and knowing which apps actually eat the days.</li>
+    </ol>
+  </div>
+
+  <h2>Where and when, in one place</h2>
+  <table>
+    <tbody>
+      <tr><td>Where</td><td>Top edge of the primary monitor, full width, 4 px tall, as a reserved edge. Not the taskbar (already crowded), not the tray (icons get hidden), not the wallpaper alone (covered).</td></tr>
+      <tr><td>When</td><td>Strip: always, from login. Moment: first unlock of each calendar day. Gate: whenever a listed app comes to the foreground.</td></tr>
+      <tr><td>What it shows</td><td>Strip: green-to-red fill for life passed, grey for life left. Hover: day N of total, days left. Moment: days left in large type, then "Is today worth one of your remaining N days?"</td></tr>
+      <tr><td>Inputs</td><td>Date of birth only, set once in a small config file. Lifespan is a constant of 80 years in the code, not a setting.</td></tr>
+    </tbody>
+  </table>
+</main>
+<script>
+(function(){
+  var LIFESPAN_YEARS=80;
+  var $=function(s){return document.querySelector(s)};
+  var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
+  var birth=$('#birth');
+  try{var s=JSON.parse(localStorage.getItem('lifebar-mock')||'{}'); if(s.birth)birth.value=s.birth;}catch(e){}
+  if(!birth.value) birth.value='1996-01-01';
+  function fmt(n){return n.toLocaleString('en-US')}
+  function render(){
+    var b=new Date(birth.value+'T00:00:00'); var now=new Date();
+    if(isNaN(b)) return;
+    var lived=Math.max(0,Math.floor((now-b)/864e5));
+    var total=Math.round(LIFESPAN_YEARS*365.25);
+    var left=Math.max(0,total-lived);
+    var f=Math.min(1,lived/total);
+    var v={lived:fmt(lived),left:fmt(left),total:fmt(total),pct:(f*100).toFixed(1)+'%',weeksleft:fmt(Math.ceil(left/7))};
+    $$('[data-v]').forEach(function(el){el.textContent=v[el.getAttribute('data-v')]});
+    $$('[data-rest]').forEach(function(el){el.style.width=((1-f)*100)+'%'});
+    var grid=$('#grid'); var totalW=Math.ceil(total/7), livedW=Math.floor(lived/7), rows=Math.ceil(totalW/52);
+    var frameH=grid.parentElement.clientHeight||540; var cell=Math.max(2,Math.floor((frameH*0.72)/rows)-1);
+    grid.style.setProperty('--cell',cell+'px');
+    var html=''; for(var i=0;i<rows*52;i++){ var c=i<livedW?' class="on"':(i===livedW?' class="now"':''); html+='<i'+c+'></i>'; }
+    grid.innerHTML=html;
+    try{localStorage.setItem('lifebar-mock',JSON.stringify({birth:birth.value}))}catch(e){}
+  }
+  birth.addEventListener('input',render);
+  window.addEventListener('resize',render);
+  render();
+})();
+</script>
+</body>
+</html>
