@@ -419,11 +419,14 @@ func messageBox(text, caption string, flags uint32) int {
 }
 
 func shellOpen(path, args string) bool {
-	var a uintptr
+	// args stays a Go pointer until the call expression itself: converting it
+	// to uintptr early would let the GC free the buffer before ShellExecuteW
+	// reads it, since nothing else references it.
+	var a *uint16
 	if args != "" {
-		a = uintptr(unsafe.Pointer(utf16(args)))
+		a = utf16(args)
 	}
-	r, _, _ := pShellExecuteW.Call(0, uintptr(unsafe.Pointer(utf16("open"))), uintptr(unsafe.Pointer(utf16(path))), a, 0, swShow)
+	r, _, _ := pShellExecuteW.Call(0, uintptr(unsafe.Pointer(utf16("open"))), uintptr(unsafe.Pointer(utf16(path))), uintptr(unsafe.Pointer(a)), 0, swShow)
 	return r > 32
 }
 
