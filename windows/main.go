@@ -36,7 +36,12 @@ func main() {
 	if !singleInstance() {
 		return
 	}
-	pSetProcessDpiAwarenessContext.Call(dpiPerMonV2)
+	// The manifest already declares per-monitor v2; this covers builds made
+	// without it. Guarded because LazyProc.Call panics where the API is
+	// missing (Windows 10 before 1703), and a windowsgui panic is invisible.
+	if pSetProcessDpiAwarenessContext.Find() == nil {
+		pSetProcessDpiAwarenessContext.Call(dpiPerMonV2)
+	}
 
 	cfg, ok := loadConfigInteractive(dir)
 	if !ok {
