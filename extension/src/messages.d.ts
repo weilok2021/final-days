@@ -19,7 +19,17 @@ interface MomentPromptMessage {
   force: boolean;
 }
 
-type FdMessage = HelloMessage | MomentPromptMessage;
+/**
+ * Content script to background: the page went away while the moment was
+ * still up, so nobody saw it. Carries the claim token so that only the
+ * claim it belongs to is released.
+ */
+interface MomentLostMessage {
+  type: 'momentLost';
+  token: string;
+}
+
+type FdMessage = HelloMessage | MomentPromptMessage | MomentLostMessage;
 
 interface StripView {
   fraction: number;
@@ -28,6 +38,8 @@ interface StripView {
 }
 
 interface MomentView {
+  /** The claim token for the daily moment; "" for a forced show, which is never released. */
+  token: string;
   fraction: number;
   number: string;
   line: string;

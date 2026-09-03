@@ -117,9 +117,12 @@
   // ---- the moment -----------------------------------------------------------
 
   let moment: HTMLElement | null = null;
+  /** Claim token of the moment on screen, "" when none or when it was a forced show. */
+  let momentToken = '';
 
   function showMoment(view: MomentView): void {
     hideMoment();
+    momentToken = view.token;
     const host = document.createElement('final-days-moment');
     pin(host, { ...HOST_RESET, top: '0', left: '0', right: '0', bottom: '0', cursor: 'default' });
     host.setAttribute('role', 'dialog');
@@ -170,7 +173,25 @@
     if (!moment) return;
     moment.remove();
     moment = null;
+    momentToken = '';
     window.removeEventListener('keydown', onMomentKey, true);
+  }
+
+  /**
+   * The page is going away (navigation, redirect, close) with the moment still
+   * up, so nobody dismissed it. Give the day back so the next page shows it.
+   */
+  function onPageHide(): void {
+    if (!moment) return;
+    const token = momentToken;
+    hideMoment();
+    if (token === '') return;
+    const lost: MomentLostMessage = { type: 'momentLost', token };
+    try {
+      void chrome.runtime.sendMessage(lost).catch(() => undefined);
+    } catch {
+      // the extension is gone; nothing to release
+    }
   }
 
   // ---- talking to the background --------------------------------------------
@@ -192,7 +213,10 @@
     try {
       reply = await chrome.runtime.sendMessage<HelloMessage, HelloReply | undefined>(message);
     } catch {
-      return; // the extension was reloaded or removed; this page keeps what it has
+      // The worker was unreachable. If the extension itself was disabled,
+      // removed or reloaded, this script is orphaned: take the bar down.
+      if (!chrome.runtime?.id) teardown();
+      return;
     }
     if (!reply) return;
     renderStrip(reply.strip);
@@ -208,17 +232,32 @@
     changeTimer = window.setTimeout(() => void refresh('none'), delay);
   }
 
+  function teardown(): void {
+    window.clearTimeout(changeTimer);
+    renderStrip(null);
+    hideMoment();
+  }
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void refresh('check');
   });
   window.addEventListener('focus', () => void refresh('check'));
-  chrome.storage.onChanged.addListener((_changes, area) => {
+  window.addEventListener('pagehide', onPageHide);
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local') {
+      // The day was claimed or released somewhere: ask again on the next return.
+      if ('lastMoment' in changes) momentDoneFor = '';
+      return;
+    }
     if (area !== 'sync') return;
     momentDoneFor = '';
     void refresh('none');
   });
   chrome.runtime.onMessage.addListener((message: FdMessage) => {
-    if (message?.type === 'momentPrompt') void refresh(message.force ? 'force' : 'check');
+    if (message?.type !== 'momentPrompt') return;
+    // The worker checked the stored state before asking, so it outranks this tab's memory.
+    momentDoneFor = '';
+    void refresh(message.force ? 'force' : 'check');
   });
 
   void refresh(document.visibilityState === 'visible' ? 'check' : 'none');

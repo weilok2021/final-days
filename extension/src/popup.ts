@@ -45,7 +45,7 @@ async function showMoment(): Promise<void> {
     await chrome.tabs.sendMessage(tab.id, message);
     window.close();
   } catch {
-    hint.textContent = 'The moment can only appear on a web page. Switch to one and try again.';
+    hint.textContent = 'This tab cannot show it. Switch to a web page, or reload this one, and try again.';
     hint.hidden = false;
   }
 }

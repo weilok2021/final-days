@@ -36,6 +36,10 @@ chrome.commands?.onCommand.addListener((command) => {
   if (command === 'toggle-strip') void toggleStrip();
 });
 chrome.runtime.onMessage.addListener((message: FdMessage, sender, sendResponse) => {
+  if (message?.type === 'momentLost') {
+    void releaseMoment(message.token);
+    return false;
+  }
   if (message?.type !== 'hello') return false;
   hello(message, sender).then(sendResponse, (err: unknown) => {
     console.error('Final Days: hello failed', err);
@@ -56,6 +60,7 @@ async function firstRun(): Promise<void> {
 async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender): Promise<HelloReply> {
   const now = new Date();
   const today = localDateString(now);
+  if (today !== actionDate) void refreshAction(); // a long-lived worker crossed midnight
   const settings = await loadSettings();
   const resolved = resolveSettings(settings, now);
   const nextChangeAt = nextChange(now, resolved?.ranges ?? []).getTime();
@@ -71,14 +76,18 @@ async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender
   let moment: MomentView | null = null;
   if (wantsMoment) {
     const force = message.moment === 'force';
-    if ((force || settings.moment) && (await claimMoment(today, force))) moment = momentView(life);
+    if (force || settings.moment) {
+      const token = await claimMoment(today, force);
+      if (token !== null) moment = momentView(life, token);
+    }
   }
   const done = wantsMoment || !settings.moment || (await shownOn(today));
   return { strip, moment, momentDoneFor: done ? today : '', nextChangeAt };
 }
 
-function momentView(life: Life): MomentView {
+function momentView(life: Life, token: string): MomentView {
   return {
+    token,
     fraction: life.fraction,
     number: formatInt(life.left),
     line: momentLine(life),
@@ -87,24 +96,57 @@ function momentView(life: Life): MomentView {
   };
 }
 
-// The last-shown date lives in chrome.storage.local. Claims are serialised so
-// that several tabs loading at once cannot all win the same day.
+// The last-shown date lives in chrome.storage.local, with a token naming the
+// claim. Claims are serialised so that several tabs loading at once cannot all
+// win the same day.
 let claimChain: Promise<unknown> = Promise.resolve();
 
-function claimMoment(today: string, force: boolean): Promise<boolean> {
-  const attempt = async (): Promise<boolean> => {
-    if (!force && (await shownOn(today))) return false;
-    await chrome.storage.local.set({ lastMoment: today });
-    return true;
-  };
-  const result = claimChain.then(attempt, attempt);
+function serial<T>(work: () => Promise<T>): Promise<T> {
+  const result = claimChain.then(work, work);
   claimChain = result.catch(() => undefined);
   return result;
 }
 
+interface MomentState {
+  lastMoment: string;
+  momentToken: string;
+}
+
+async function readState(): Promise<MomentState> {
+  const raw = await chrome.storage.local.get({ lastMoment: '', momentToken: '' });
+  return {
+    lastMoment: typeof raw.lastMoment === 'string' ? raw.lastMoment : '',
+    momentToken: typeof raw.momentToken === 'string' ? raw.momentToken : '',
+  };
+}
+
+/**
+ * Marks today as shown and returns the claim token, or null when today was
+ * already taken. A forced show always wins and gets the empty token, so it
+ * can never be released.
+ */
+function claimMoment(today: string, force: boolean): Promise<string | null> {
+  return serial(async () => {
+    const state = await readState();
+    if (!force && state.lastMoment === today) return null;
+    const token = force ? '' : crypto.randomUUID();
+    await chrome.storage.local.set({ lastMoment: today, momentToken: token });
+    return token;
+  });
+}
+
+/** The page holding the moment went away before anyone dismissed it: give the day back. */
+function releaseMoment(token: string): Promise<void> {
+  return serial(async () => {
+    if (token === '') return;
+    const state = await readState();
+    if (state.momentToken !== token) return; // a different claim owns the day now
+    await chrome.storage.local.remove(['lastMoment', 'momentToken']);
+  });
+}
+
 async function shownOn(day: string): Promise<boolean> {
-  const { lastMoment } = await chrome.storage.local.get({ lastMoment: '' });
-  return lastMoment === day;
+  return (await readState()).lastMoment === day;
 }
 
 /**
@@ -138,8 +180,12 @@ async function toggleStrip(): Promise<void> {
 
 // ---- toolbar icon and tooltip -------------------------------------------------
 
+/** Local date the icon and tooltip were last drawn for. */
+let actionDate = '';
+
 async function refreshAction(): Promise<void> {
   const now = new Date();
+  actionDate = localDateString(now);
   const settings = await loadSettings();
   const resolved = resolveSettings(settings, now);
   try {
