@@ -107,7 +107,9 @@ thing, and this section is the record of those differences.
      at least 5 minutes without input (the page in front is asked to show it).
   The day is claimed the instant one tab wins, so several tabs loading at once
   show it exactly once. Pages without the content script (browser pages) fall
-  through to the next page that has it.
+  through to the next page that has it. If the page goes away (a redirect, a
+  navigation) while the moment is still up, the day is released and the next
+  page shows it: only a click or a key counts as seen.
 - **Settings.** The same four values as section 6, entered on an options page
   instead of a file, kept in the browser's synced extension storage. The
   last-shown date lives in local extension storage.
