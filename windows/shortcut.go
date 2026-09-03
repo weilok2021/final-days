@@ -14,17 +14,31 @@ import (
 
 // "Start with Windows" is one shortcut in the user's Startup folder, nothing else.
 
-func startupShortcutPath() string {
-	return filepath.Join(os.Getenv("APPDATA"), "Microsoft", "Windows", "Start Menu", "Programs", "Startup", "Final Days.lnk")
+// startupShortcutPath asks the shell for the Startup folder rather than
+// building it from %APPDATA%: the environment can be empty or redirected, and
+// this is the folder Windows actually runs at sign-in.
+func startupShortcutPath() (string, error) {
+	dir, err := windows.KnownFolderPath(windows.FOLDERID_Startup, 0)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "Final Days.lnk"), nil
 }
 
 func startupEnabled() bool {
-	_, err := os.Stat(startupShortcutPath())
+	p, err := startupShortcutPath()
+	if err != nil {
+		return false
+	}
+	_, err = os.Stat(p)
 	return err == nil
 }
 
 func setStartup(on bool) error {
-	p := startupShortcutPath()
+	p, err := startupShortcutPath()
+	if err != nil {
+		return fmt.Errorf("could not find the Startup folder: %w", err)
+	}
 	if !on {
 		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
 			return err
