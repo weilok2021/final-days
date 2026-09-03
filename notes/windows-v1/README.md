@@ -43,3 +43,17 @@ Final Days, version 1 for Windows: a 4-pixel life bar reserved along the top scr
 8. Set `quiet_hours` to include now, restart: lived part of the bar is flat grey.
 9. Play a full-screen video (F11 in a browser): bar drops behind it; leaving full screen brings it back.
 10. `final-days.log` next to the exe should only contain start/stop lines.
+
+## 2026-09-03, security review (fresh session, feature/windows-v1 against dev)
+Scope: every unsafe/uintptr use and the struct layouts handed to Win32, the COM shortcut code, config/state/log handling next to the exe, window messages, tray callbacks and the hotkey (any local process can post them), and the GitHub Actions workflow.
+
+Fixed on the branch, one commit each:
+- Medium: CI actions were pinned to mutable major tags; the release job runs a third-party action with `contents: write`. Now pinned to commit SHAs with the version in a comment.
+- Medium: `shellOpen` converted the args buffer to `uintptr` outside the call expression, so nothing kept it alive for ShellExecuteW. Now converted inline.
+- Low: the Notepad fallback passed a bare `notepad.exe` to ShellExecuteW, which searches the working directory and PATH first. Now the full System32 path, argument quoted, via a shared `openTextFile`.
+- Low: the Startup shortcut path came from `%APPDATA%`; now from `SHGetKnownFolderPath(FOLDERID_Startup)`.
+- Low: a spoofed `TaskbarCreated` broadcast made NIM_ADD fail and disabled tray updates for the rest of the run. Now remove then add.
+
+Checked and found fine: struct sizes and field alignment for WNDCLASSEXW, MSG, PAINTSTRUCT, APPBARDATA, NOTIFYICONDATAW (976 bytes on x64), ICONINFO, TRACKMOUSEEVENT, TRIVERTEX, BITMAPINFO, LASTINPUTINFO; every other pointer conversion is inline in a `Call`/`comCall` expression; COM vtable indices (SetPath 20, SetWorkingDirectory 9, SetDescription 7, IPersistFile::Save 6) and the three GUIDs; no message handler dereferences wParam or lParam, so posted messages can only toggle, show or quit; `NewLazySystemDLL` only; no registry; config and state parsers cannot panic on hostile input; the mutex is in the per-session `Local\` namespace.
+
+Not fixed (not security): `SetProcessDpiAwarenessContext` is called through an unguarded `LazyProc.Call` and would panic on Windows 10 before 1703 (the manifest already sets per-monitor v2, so the call is redundant). `drawText` would panic on a string containing NUL (only program-built strings reach it today). `CoInitializeEx` is never balanced by `CoUninitialize`. The `RegisterHotKey` result is ignored. The workflow pins Go to exactly 1.25.0 through go.mod, so toolchain security patches need a bump.
