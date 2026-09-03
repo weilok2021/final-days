@@ -17,6 +17,13 @@
     for (const [name, value] of Object.entries(props)) el.style.setProperty(name, value, 'important');
   }
 
+  /** Styles for a shadow root as a constructed sheet: CSSOM is never subject to a page's Content Security Policy. */
+  function adopt(shadow: ShadowRoot, css: string): void {
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(css);
+    shadow.adoptedStyleSheets = [sheet];
+  }
+
   const HOST_RESET: Record<string, string> = {
     position: 'fixed',
     display: 'block',
@@ -51,12 +58,14 @@
     pin(host, { ...HOST_RESET, top: '0', left: '0', right: '0', height: '4px' });
     host.setAttribute('aria-hidden', 'true');
     const shadow = host.attachShadow({ mode: 'closed' });
-    shadow.innerHTML = `<style>
-.bar{position:absolute;top:0;left:0;right:0;bottom:0}
+    adopt(
+      shadow,
+      `.bar{position:absolute;top:0;left:0;right:0;bottom:0}
 .rest{position:absolute;top:0;bottom:0;right:0;background:#e7e5e4}
 .tip{position:fixed;top:10px;left:0;transform:translateX(-50%);background:#1f2430;color:#fff;font:13px/1.2 ${FONT};font-variant-numeric:tabular-nums;padding:6px 10px;border-radius:6px;white-space:nowrap;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.25)}
-.tip[hidden]{display:none}
-</style><div class="bar"><div class="rest"></div></div><div class="tip" hidden></div>`;
+.tip[hidden]{display:none}`,
+    );
+    shadow.innerHTML = '<div class="bar"><div class="rest"></div></div><div class="tip" hidden></div>';
     const els: StripEls = {
       host,
       bar: shadow.querySelector<HTMLElement>('.bar')!,
@@ -117,15 +126,18 @@
     host.setAttribute('aria-label', 'Final Days');
     host.tabIndex = -1;
     const shadow = host.attachShadow({ mode: 'closed' });
-    shadow.innerHTML = `<style>
-.root{all:initial;position:absolute;top:0;left:0;right:0;bottom:0;background:#0b0d12;color:#fff;font-family:${FONT};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:default;user-select:none;-webkit-user-select:none}
+    adopt(
+      shadow,
+      `.root{all:initial;position:absolute;top:0;left:0;right:0;bottom:0;background:#0b0d12;color:#fff;font-family:${FONT};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:default;user-select:none;-webkit-user-select:none}
 .bar{position:absolute;top:0;left:0;right:0;height:3px;background:${GRADIENT}}
 .rest{position:absolute;top:0;bottom:0;right:0;background:#27272a}
 .big{font-size:16vh;font-weight:600;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:#fff}
 .line{margin-top:1.6vh;font-size:max(2vh,13px);color:#a1a1aa}
 .q{margin-top:6vh;padding:0 6vw;font-size:max(2.3vh,15px);font-style:italic;color:#e4e4e7}
-.foot{position:absolute;bottom:4vh;left:0;right:0;font-size:max(1.2vh,11px);color:#52525b}
-</style><div class="root"><div class="bar"><div class="rest"></div></div><div class="big"></div><div class="line"></div><div class="q"></div><div class="foot"></div></div>`;
+.foot{position:absolute;bottom:4vh;left:0;right:0;font-size:max(1.2vh,11px);color:#52525b}`,
+    );
+    shadow.innerHTML =
+      '<div class="root"><div class="bar"><div class="rest"></div></div><div class="big"></div><div class="line"></div><div class="q"></div><div class="foot"></div></div>';
     const text = (selector: string, value: string) => {
       shadow.querySelector<HTMLElement>(selector)!.textContent = value;
     };
