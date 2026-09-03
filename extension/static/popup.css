@@ -1,0 +1,24 @@
+* { box-sizing: border-box; }
+body {
+  width: 260px;
+  margin: 0;
+  padding: 0 0 12px;
+  background: #0b0d12;
+  color: #ffffff;
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  text-align: center;
+}
+.life { position: relative; height: 4px; background: linear-gradient(90deg, #16a34a 0%, #eab308 50%, #dc2626 100%); }
+.life .rest { position: absolute; top: 0; bottom: 0; right: 0; background: #27272a; }
+section { padding: 20px 18px 6px; }
+.big { font-size: 44px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.line { margin-top: 8px; color: #a1a1aa; font-size: 12px; font-variant-numeric: tabular-nums; }
+button { font: inherit; cursor: pointer; }
+#show { margin-top: 16px; width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid #3f3f46; background: transparent; color: #ffffff; }
+#show:hover { background: #1f2430; }
+.hint { margin: 10px 0 0; color: #a1a1aa; font-size: 12px; }
+.toggle { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 14px; color: #e4e4e7; cursor: pointer; }
+.toggle input { margin: 0; }
+.setup { margin: 0; color: #e4e4e7; }
+.link { display: inline-block; margin-top: 6px; padding: 4px 8px; border: 0; background: transparent; color: #a1a1aa; text-decoration: underline; }
+.link:hover { color: #ffffff; }
