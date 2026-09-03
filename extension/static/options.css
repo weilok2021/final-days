@@ -41,8 +41,9 @@ h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
 form { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; }
 .field { display: block; margin: 0 0 22px; }
 .field > span { display: block; font-weight: 600; margin-bottom: 6px; }
-.field input { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; max-width: 320px; }
-.field input:focus, .actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.field input, .field textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; max-width: 320px; }
+.field textarea { max-width: none; resize: vertical; line-height: 1.4; }
+.field input:focus, .field textarea:focus, .actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 small { display: block; color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.45; }
 .check { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 22px; cursor: pointer; }
 .check input { margin: 5px 0 0; width: 16px; height: 16px; flex: none; }

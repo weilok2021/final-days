@@ -1,6 +1,6 @@
 // Options page: the date of birth and the three switches, saved to
 // chrome.storage.sync after validation. Lifespan is not a setting.
-import { computeLife, localDateString, parseBirth, parseHourRanges, tipText } from './life.ts';
+import { computeLife, localDateString, parseBirth, parseHourRanges, parseSiteList, tipText } from './life.ts';
 import { loadSettings, saveSettings } from './settings.ts';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -14,6 +14,7 @@ const birth = el<HTMLInputElement>('birth');
 const strip = el<HTMLInputElement>('strip');
 const moment = el<HTMLInputElement>('moment');
 const quiet = el<HTMLInputElement>('quiet');
+const sites = el<HTMLTextAreaElement>('sites');
 const status = el<HTMLElement>('status');
 const preview = el<HTMLElement>('preview');
 const rest = el<HTMLElement>('rest');
@@ -44,6 +45,7 @@ async function load(): Promise<void> {
   strip.checked = settings.strip;
   moment.checked = settings.moment;
   quiet.value = settings.quietHours;
+  sites.value = settings.momentSites;
   renderPreview();
   if (settings.birth === '') {
     say('Set your date of birth to start.', false);
@@ -60,6 +62,7 @@ async function save(): Promise<void> {
   try {
     parseBirth(birth.value, new Date());
     parseHourRanges(quiet.value);
+    parseSiteList(sites.value);
   } catch (err) {
     say(err instanceof Error ? err.message : String(err), true);
     return;
@@ -69,12 +72,13 @@ async function save(): Promise<void> {
     strip: strip.checked,
     moment: moment.checked,
     quietHours: quiet.value.trim(),
+    momentSites: sites.value.trim(),
   });
   renderPreview();
   say('Saved.', false);
 }
 
 birth.addEventListener('input', renderPreview);
-for (const input of [birth, strip, moment, quiet]) input.addEventListener('input', () => say('', false));
+for (const input of [birth, strip, moment, quiet, sites]) input.addEventListener('input', () => say('', false));
 
 void load();

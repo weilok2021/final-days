@@ -108,11 +108,18 @@ thing, and this section is the record of those differences.
   The day is claimed the instant one tab wins, so several tabs loading at once
   show it exactly once. Pages without the content script (browser pages) fall
   through to the next page that has it. If the page goes away (a redirect, a
-  navigation) while the moment is still up, the day is released and the next
-  page shows it: only a click or a key counts as seen.
-- **Settings.** The same four values as section 6, entered on an options page
-  instead of a file, kept in the browser's synced extension storage. The
-  last-shown date lives in local extension storage.
+  navigation) within 3 seconds of the moment appearing, nobody can have read
+  it: the day is released and the next page shows it. After 3 seconds on
+  screen it counts as seen, whether dismissed or left behind.
+- **Sites.** An optional list of sites (host names, subdomains included)
+  restricts the moment: with a list, "the first time the user comes back"
+  becomes the first visit of the day to a listed site, and the moment never
+  appears anywhere else, so it stays off work pages and shared screens. A
+  forced show from the popup or the strip works on any page. Empty means
+  every site, which is the behaviour of section 3.
+- **Settings.** The four values of section 6 plus the site list, entered on
+  an options page instead of a file, kept in the browser's synced extension
+  storage. The last-shown date lives in local extension storage.
 - **Toolbar.** The icon is the miniature strip of section 4, redrawn with the
   real fraction; its tooltip is `Final Days · 18,271 days left`. Its popup
   holds the days left, the day count, **Show today's moment**, the strip

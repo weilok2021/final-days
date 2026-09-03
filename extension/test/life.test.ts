@@ -10,8 +10,10 @@ import {
   nextChange,
   parseBirth,
   parseHourRanges,
+  parseSiteList,
   question,
   rangeContains,
+  siteListed,
   tipText,
 } from '../src/life.ts';
 
@@ -119,4 +121,29 @@ test('nextChange is the next boundary today or else midnight', () => {
   assert.deepEqual(nextChange(new Date(2026, 8, 3, 23, 30), ranges), new Date(2026, 8, 4, 0, 0));
   assert.deepEqual(nextChange(new Date(2026, 8, 3, 13, 0), []), new Date(2026, 8, 4, 0, 0));
   assert.deepEqual(nextChange(new Date(2026, 8, 3, 13, 0), parseHourRanges('00:00-24:00')), new Date(2026, 8, 4, 0, 0));
+});
+
+test('parseSiteList takes hosts, URLs and lists', () => {
+  assert.deepEqual(parseSiteList(''), []);
+  assert.deepEqual(parseSiteList('youtube.com'), ['youtube.com']);
+  assert.deepEqual(parseSiteList('YouTube.com, www.facebook.com\n https://www.reddit.com/r/all?x=1 ,'), [
+    'youtube.com',
+    'facebook.com',
+    'reddit.com',
+  ]);
+  assert.deepEqual(parseSiteList('*.x.com, x.com'), ['x.com']);
+  assert.throws(() => parseSiteList('you tube.com'), /not a site name/);
+  assert.throws(() => parseSiteList('.com'), /not a site name/);
+});
+
+test('siteListed matches the site and its subdomains', () => {
+  const sites = parseSiteList('youtube.com, x.com');
+  assert.equal(siteListed(sites, 'www.youtube.com'), true);
+  assert.equal(siteListed(sites, 'youtube.com'), true);
+  assert.equal(siteListed(sites, 'm.youtube.com'), true);
+  assert.equal(siteListed(sites, 'notyoutube.com'), false);
+  assert.equal(siteListed(sites, 'github.com'), false);
+  assert.equal(siteListed(sites, ''), false);
+  assert.equal(siteListed(null, 'github.com'), true);
+  assert.equal(siteListed([], 'github.com'), false);
 });

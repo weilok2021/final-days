@@ -5,6 +5,8 @@
 /** Content script to background: "here is what I need right now". */
 interface HelloMessage {
   type: 'hello';
+  /** The page's host name, matched against the moment's site list. */
+  host: string;
   /**
    * none: just the strip (page load in a background tab, a timer tick).
    * check: also show today's moment if it has not been shown yet.

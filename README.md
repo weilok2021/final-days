@@ -86,7 +86,10 @@ the same as on Windows; three things are necessarily different:
   reserve screen space, so a page's own top edge sits under it.
 - The moment covers the current tab, not the whole screen. "The first time you
   come back" is the first page you look at each day, or the first time the
-  browser sees you return after a lock or five idle minutes.
+  browser sees you return after a lock or five idle minutes. On a work
+  machine you can list the sites it may appear on (YouTube, the social
+  sites), and it then shows up the first time each day you open one of them
+  and nowhere else, so it stays off work pages and shared screens.
 - Neither can appear on the browser's own pages (settings, new tab, the
   extension store) or on PDFs, because extensions are kept out of those.
 
@@ -111,7 +114,8 @@ The extension is not on a store yet, so it loads "unpacked" from a folder:
 Pin the icon from the toolbar's extensions menu: it shows the bar in
 miniature, and its popup has the numbers, **Show today's moment** and the bar
 switch. `Alt+Shift+F` also toggles the bar (changeable at
-`chrome://extensions/shortcuts`). Quiet hours are on the options page.
+`chrome://extensions/shortcuts`). Quiet hours and the moment's site list are
+on the options page.
 
 ### Build it yourself
 

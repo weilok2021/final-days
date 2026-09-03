@@ -166,3 +166,35 @@ export function nextChange(now: Date, ranges: HourRange[]): Date {
   }
   return new Date(best);
 }
+
+/**
+ * Parses the "moment only on these sites" list: host names separated by
+ * commas or new lines. A pasted URL is reduced to its host, and a leading
+ * "www." is dropped so that every subdomain of the site matches. Empty text
+ * gives an empty list. Throws an Error fit for showing to the user.
+ */
+export function parseSiteList(text: string): string[] {
+  const out: string[] = [];
+  for (const raw of text.split(/[\n,]/)) {
+    const entry = raw.trim();
+    if (entry === '') continue;
+    let host = entry.toLowerCase().replace(/^[a-z][a-z0-9+.-]*:\/\//, '');
+    host = host.split('/')[0]?.split('?')[0]?.split(':')[0] ?? '';
+    host = host.replace(/^\*\./, '').replace(/^www\./, '');
+    if (host === '' || !/^[a-z0-9.-]+$/.test(host) || host.startsWith('.') || host.endsWith('.')) {
+      throw new Error(`Sites: "${entry}" is not a site name like youtube.com.`);
+    }
+    if (!out.includes(host)) out.push(host);
+  }
+  return out;
+}
+
+/**
+ * Whether a page host is one of the listed sites or a subdomain of one.
+ * A null list means every site is listed.
+ */
+export function siteListed(sites: string[] | null, host: string): boolean {
+  if (sites === null) return true;
+  const h = host.toLowerCase();
+  return sites.some((site) => h === site || h.endsWith(`.${site}`));
+}
