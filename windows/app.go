@@ -152,8 +152,10 @@ func (a *App) proc(hwnd, m, wp, lp uintptr) uintptr {
 		return 0
 	}
 	if a.taskbarCreated != 0 && m == uintptr(a.taskbarCreated) {
-		// Explorer restarted: the icon is gone, put it back.
-		a.tray.added = false
+		// Explorer restarted: the icon is gone, put it back. Any process can
+		// broadcast this message, so remove first: a spoofed one then re-adds
+		// cleanly instead of failing NIM_ADD and disabling the tray for good.
+		a.tray.remove()
 		a.tray.add()
 		return 0
 	}
