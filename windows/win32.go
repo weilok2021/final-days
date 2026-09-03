@@ -3,6 +3,7 @@
 package main
 
 import (
+	"path/filepath"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -428,6 +429,21 @@ func shellOpen(path, args string) bool {
 	}
 	r, _, _ := pShellExecuteW.Call(0, uintptr(unsafe.Pointer(utf16("open"))), uintptr(unsafe.Pointer(utf16(path))), uintptr(unsafe.Pointer(a)), 0, swShow)
 	return r > 32
+}
+
+// openTextFile opens path with its associated program, falling back to Notepad.
+// The fallback names Notepad by its full path under the system directory: given
+// a bare "notepad.exe", ShellExecuteW would search the current working directory
+// and PATH first, and a planted notepad.exe there would run instead.
+func openTextFile(path string) bool {
+	if shellOpen(path, "") {
+		return true
+	}
+	sys, err := windows.GetSystemDirectory()
+	if err != nil {
+		return false
+	}
+	return shellOpen(filepath.Join(sys, "notepad.exe"), `"`+path+`"`)
 }
 
 func idleMillis() uint32 {

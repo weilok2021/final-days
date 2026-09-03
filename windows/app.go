@@ -102,10 +102,7 @@ func (a *App) toggleStrip() {
 }
 
 func (a *App) openConfig() {
-	p := filepath.Join(a.dir, configFile)
-	if !shellOpen(p, "") {
-		shellOpen("notepad.exe", p)
-	}
+	openTextFile(filepath.Join(a.dir, configFile))
 }
 
 func (a *App) command(id int) {

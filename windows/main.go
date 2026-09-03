@@ -142,9 +142,7 @@ func loadConfigInteractive(dir string) (Config, bool) {
 			return
 		}
 		opened = true
-		if !shellOpen(path, "") {
-			shellOpen("notepad.exe", path)
-		}
+		openTextFile(path)
 	}
 	for {
 		text, err := os.ReadFile(path)
