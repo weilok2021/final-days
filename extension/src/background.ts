@@ -9,6 +9,7 @@ import {
   momentLine,
   nextChange,
   question,
+  siteListed,
   tipText,
   type Life,
 } from './life.ts';
@@ -71,17 +72,17 @@ async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender
     ? { fraction: life.fraction, quiet: inQuietHours(resolved.ranges, now), tip: tipText(life) }
     : null;
 
-  // Only a page can show the moment, so only messages from a tab may claim it.
-  const wantsMoment = sender.tab !== undefined && message.moment !== 'none';
+  // Only a page can show the moment, so only messages from a tab may claim it,
+  // and only a listed site may claim the day. A forced show works anywhere.
+  const listed = siteListed(resolved.sites, message.host);
+  const force = message.moment === 'force';
+  const wantsMoment = sender.tab !== undefined && message.moment !== 'none' && (listed || force);
   let moment: MomentView | null = null;
-  if (wantsMoment) {
-    const force = message.moment === 'force';
-    if (force || settings.moment) {
-      const token = await claimMoment(today, force);
-      if (token !== null) moment = momentView(life, token);
-    }
+  if (wantsMoment && (force || settings.moment)) {
+    const token = await claimMoment(today, force);
+    if (token !== null) moment = momentView(life, token);
   }
-  const done = wantsMoment || !settings.moment || (await shownOn(today));
+  const done = wantsMoment || !settings.moment || !listed || (await shownOn(today));
   return { strip, moment, momentDoneFor: done ? today : '', nextChangeAt };
 }
 

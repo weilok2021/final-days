@@ -11,6 +11,8 @@
   const GRADIENT = 'linear-gradient(90deg, #16a34a 0%, #eab308 50%, #dc2626 100%)';
   const QUIET_GREY = '#6b7280';
   const TIP_DELAY_MS = 350;
+  /** A moment on screen this long counts as seen even if the page then goes away. */
+  const SEEN_AFTER_MS = 3000;
 
   /** Inline !important declarations beat any stylesheet the page has for our host elements. */
   function pin(el: HTMLElement, props: Record<string, string>): void {
@@ -119,10 +121,12 @@
   let moment: HTMLElement | null = null;
   /** Claim token of the moment on screen, "" when none or when it was a forced show. */
   let momentToken = '';
+  let momentShownAt = 0;
 
   function showMoment(view: MomentView): void {
     hideMoment();
     momentToken = view.token;
+    momentShownAt = Date.now();
     const host = document.createElement('final-days-moment');
     pin(host, { ...HOST_RESET, top: '0', left: '0', right: '0', bottom: '0', cursor: 'default' });
     host.setAttribute('role', 'dialog');
@@ -179,13 +183,16 @@
 
   /**
    * The page is going away (navigation, redirect, close) with the moment still
-   * up, so nobody dismissed it. Give the day back so the next page shows it.
+   * up. If it had only just appeared, nobody can have read it: give the day
+   * back so the next page shows it. If it had been up for a few seconds, the
+   * user saw it and chose to move on, which counts as seen.
    */
   function onPageHide(): void {
     if (!moment) return;
     const token = momentToken;
+    const seen = Date.now() - momentShownAt >= SEEN_AFTER_MS;
     hideMoment();
-    if (token === '') return;
+    if (token === '' || seen) return;
     const lost: MomentLostMessage = { type: 'momentLost', token };
     try {
       void chrome.runtime.sendMessage(lost).catch(() => undefined);
@@ -208,7 +215,7 @@
 
   async function refresh(mode: HelloMessage['moment']): Promise<void> {
     if (mode === 'check' && (momentDoneFor === localToday() || document.visibilityState !== 'visible')) mode = 'none';
-    const message: HelloMessage = { type: 'hello', moment: mode };
+    const message: HelloMessage = { type: 'hello', moment: mode, host: location.hostname };
     let reply: HelloReply | undefined;
     try {
       reply = await chrome.runtime.sendMessage<HelloMessage, HelloReply | undefined>(message);
