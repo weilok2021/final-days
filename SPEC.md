@@ -85,3 +85,36 @@ quiet_hours = "09:00-12:00"  # comma-separated HH:MM-HH:MM ranges, strip goes gr
 ```
 
 Only flat `key = value` pairs, strings in double quotes, booleans bare, `#` comments.
+
+## 7. Browser extension port
+
+`extension/` implements the same behaviour inside Chrome and Edge (Manifest
+V3). Where a browser cannot do what Windows does, the port does the nearest
+thing, and this section is the record of those differences.
+
+- **Strip.** A content script draws it over the top 4 CSS px of every web page
+  (a page cannot reserve screen space) at the highest stacking level. It cannot
+  appear on the browser's own pages, the extension store or PDFs. Colours,
+  quiet hours, the hover label and click-to-show-the-moment follow section 2.
+  The keyboard toggle is `Alt+Shift+F`, because browsers reserve `Ctrl+Alt`
+  combinations. Off means the element is removed from every page.
+- **Moment.** Covers the current tab, not the whole screen; content and
+  dismissal follow section 3. "The first time the user comes back" is
+  whichever of these happens first on a day when it has not been shown:
+  1. a page loads in a visible tab;
+  2. a tab becomes visible or the browser window regains focus;
+  3. the browser's idle API reports a return to `active` after a lock or after
+     at least 5 minutes without input (the page in front is asked to show it).
+  The day is claimed the instant one tab wins, so several tabs loading at once
+  show it exactly once. Pages without the content script (browser pages) fall
+  through to the next page that has it.
+- **Settings.** The same four values as section 6, entered on an options page
+  instead of a file, kept in the browser's synced extension storage. The
+  last-shown date lives in local extension storage.
+- **Toolbar.** The icon is the miniature strip of section 4, redrawn with the
+  real fraction; its tooltip is `Final Days · 18,271 days left`. Its popup
+  holds the days left, the day count, **Show today's moment**, the strip
+  switch and a link to the options.
+- **Not ported.** Start-with-Windows (the browser starts the extension), the
+  config file, and hiding behind full-screen applications (a full-screen video
+  already covers the page, so the strip and the moment are not seen over it).
