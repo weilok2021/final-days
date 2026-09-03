@@ -18,3 +18,12 @@ vendor/
 .vscode/
 .idea/
 *.swp
+
+# Generated at build time by go-winres
+*.syso
+
+# Node
+node_modules/
+
+# Ephemeral QA scratchpad, never merged
+**/QA-CHECKLIST.md
