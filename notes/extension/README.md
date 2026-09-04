@@ -4,13 +4,13 @@
 **Worktree:** .worktrees/feature-extension
 **Started:** 2026-09-03
 **Issue:** none (GitHub PR only)
-**Open the PR here:** https://github.com/weilok2021/final-days/compare/dev...feature/extension?expand=1
+**Open the PR here:** https://github.com/weilok2021/final-days/compare/main...feature/extension?expand=1
 
 ## What this is
 The browser-extension port of Final Days for Chrome and Edge (Manifest V3, TypeScript): once a day, or every time a listed site opens, the page goes dark and shows the days left with the life bar under the number. It exists because the Go exe was flagged by SentinelOne on the managed work laptop; nothing here runs outside the browser. Until 2026-09-04 it also drew the 4 px bar on every page; see the decisions of that day.
 
 ## Decisions (2026-09-03)
-- The branch was created off origin/dev and origin/feature/windows-v1 was merged into it, because SPEC.md, design/ and notes/ only existed on that branch. Until the windows-v1 PR is merged into dev, this PR's diff shows the Windows files too; after that merge it shrinks to the extension files by itself.
+- The branch was created off origin/dev (since deleted, see 2026-09-04) and origin/feature/windows-v1 was merged into it, because SPEC.md, design/ and notes/ only existed on that branch. The PR therefore carries the Windows port as well and goes straight into main.
 - Chrome and Edge both, one manifest, one folder; the install steps are written for both. Firefox is not targeted (see loose ends).
 - Toolchain is the TypeScript compiler only, no bundler. `npm run build` compiles src/ to dist/ and copies static/ (manifest, pages, styles, icons) in; dist/ is the load-unpacked folder and is gitignored. Tests run straight on the .ts files with Node 24's type stripping (`node --test`), so there is no test build. TypeScript 7 (the native compiler) is what npm installed and it works with these options.
 - The content script is a classic script with no imports, because content scripts cannot import modules without extra machinery. It renders only; every number and string arrives from the background worker in one `hello` message, so life.ts is the single copy of the logic. Message types are global declarations in messages.d.ts. `moduleDetection: legacy` in tsconfig stops tsc from appending `export {}` to the content script, which would break it.
@@ -95,7 +95,7 @@ Security review: nothing above Low. Code review: three Mediums and a tail of Low
 ## Loose ends
 - The review-round fixes have had their own tests but not a second independent review. If one is wanted, it is a fresh-session job again: `code-review` at low or medium, scope extension/ only.
 - The desktop-only checklist items (lock and unlock, the toolbar, the migration of the real work-PC settings) are still to run by hand after the reload.
-- The windows-v1 PR should merge into dev before this one: this branch renames Go identifiers and the TOML keys on top of the windows-v1 files, and the strip removal on Windows is a separate follow-up (note in notes/windows-v1/README.md).
+- Branches (2026-09-04, user decision): main is the only long-lived branch; dev was deleted (it never had a commit of its own) and the CI trigger lists main alone. This branch contains all of feature/windows-v1, so one PR into main delivers both ports; after the merge both feature branches and their worktrees can go. The strip removal on Windows is a separate follow-up (note in notes/windows-v1/README.md).
 - design/design/lifebar/directions.html (the windows-v1 mockup, doubled directory) still says "moment"; it is that branch's file and was left alone, as was notes/windows-v1/research-brief.md, a dated research record.
 - The user reported the countdown "no longer triggering" after the site-list build on 2026-09-03, before the reset command had been run in a live worker console; the suite could not reproduce anything of the kind and the fixed redirect case is the only trigger bug found. If it recurs, read chrome.storage.sync and chrome.storage.local from the service worker console.
 - Firefox: not attempted. It needs its own manifest keys for the background script and an add-on id; check MDN's current Manifest V3 notes before starting, and do not assume Chrome's keys carry over.
