@@ -138,6 +138,13 @@
 
   /** Local date for which this tab already knows no countdown is due; "" means ask. */
   let countdownDoneFor = '';
+  /**
+   * Whether this document has already shown a countdown of its own accord
+   * (from a check, not a forced show). Once per page load: a settings change
+   * must not bring it back, and a page that has had its countdown never asks
+   * again by itself, so no check of its can be in flight when it goes away.
+   */
+  let shownFromCheck = false;
   /** Countdown checks sent and not yet answered. */
   let checksInFlight = 0;
 
@@ -147,8 +154,16 @@
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
-  async function refresh(mode: HelloMessage['countdown']): Promise<void> {
-    if (mode === 'check' && (countdownDoneFor === localToday() || document.visibilityState !== 'visible')) return;
+  /**
+   * Asks the worker whether to show the countdown. A prompt from the worker
+   * (prompted) outranks what this tab remembers, because the worker checked
+   * the stored state before asking.
+   */
+  async function refresh(mode: HelloMessage['countdown'], prompted = false): Promise<void> {
+    if (mode === 'check') {
+      if (document.visibilityState !== 'visible') return;
+      if (!prompted && (shownFromCheck || countdownDoneFor === localToday())) return;
+    }
     const message: HelloMessage = { type: 'hello', doc: DOC_ID, countdown: mode, host: location.hostname };
     let reply: HelloReply | undefined;
     checksInFlight++;
@@ -163,7 +178,10 @@
       checksInFlight--;
     }
     if (!reply) return;
-    if (reply.countdown) showCountdown(reply.countdown);
+    if (reply.countdown) {
+      showCountdown(reply.countdown);
+      if (mode === 'check') shownFromCheck = true;
+    }
     countdownDoneFor = reply.countdownDoneFor;
   }
 
@@ -178,9 +196,8 @@
   });
   chrome.runtime.onMessage.addListener((message: FdMessage) => {
     if (message?.type !== 'countdownPrompt') return;
-    // The worker checked the stored state before asking, so it outranks this tab's memory.
     countdownDoneFor = '';
-    void refresh(message.force ? 'force' : 'check');
+    void refresh(message.force ? 'force' : 'check', true);
   });
 
   if (document.visibilityState === 'visible') void refresh('check');
