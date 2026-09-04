@@ -1,7 +1,7 @@
-// Toolbar popup: the numbers, "show the countdown", the life-bar switch and
-// a way to the options page. The browser equivalent of the Windows tray menu.
-import { computeLife, formatInt, countdownLine } from './life.ts';
-import { loadSettings, resolveSettings, saveSettings } from './settings.ts';
+// Toolbar popup: the numbers, "Show the countdown" and a way to the options
+// page. The browser equivalent of the Windows tray menu.
+import { computeLife, countdownLine, formatInt } from './life.ts';
+import { loadSettings, resolveSettings } from './settings.ts';
 
 function el<T extends HTMLElement>(id: string): T {
   const found = document.getElementById(id);
@@ -16,7 +16,6 @@ const left = el<HTMLElement>('left');
 const line = el<HTMLElement>('line');
 const show = el<HTMLButtonElement>('show');
 const hint = el<HTMLElement>('hint');
-const strip = el<HTMLInputElement>('strip');
 const options = el<HTMLButtonElement>('options');
 
 const now = new Date();
@@ -28,7 +27,6 @@ if (resolved) {
   rest.style.width = `${(1 - life.fraction) * 100}%`;
   left.textContent = formatInt(life.left);
   line.textContent = countdownLine(life);
-  strip.checked = settings.strip;
   ready.hidden = false;
 } else {
   rest.style.width = '100%';
@@ -49,8 +47,6 @@ async function showCountdown(): Promise<void> {
     hint.hidden = false;
   }
 }
-
-strip.addEventListener('change', () => void saveSettings({ strip: strip.checked }));
 
 options.addEventListener('click', () => {
   void chrome.runtime.openOptionsPage();

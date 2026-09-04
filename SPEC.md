@@ -94,12 +94,12 @@ until 2026-09-04; the old names are still read when the new ones are absent.
 V3). Where a browser cannot do what Windows does, the port does the nearest
 thing, and this section is the record of those differences.
 
-- **Strip.** A content script draws it over the top 4 CSS px of every web page
-  (a page cannot reserve screen space) at the highest stacking level. It cannot
-  appear on the browser's own pages, the extension store or PDFs. Colours,
-  quiet hours, the hover label and click-to-show-the-countdown follow section 2.
-  The keyboard toggle is `Alt+Shift+F`, because browsers reserve `Ctrl+Alt`
-  combinations. Off means the element is removed from every page.
+- **No strip.** The extension draws nothing on pages between countdowns. It
+  had the strip of section 2 at first, drawn over the top 4 CSS px of every
+  page; it was removed on 2026-09-04 because over a web page it stopped
+  registering within days (the habituation the research notes predicted), and
+  a page cannot reserve screen space the way the desktop can. Quiet hours and
+  the hover label went with it. The bar lives in the countdown instead.
 - **Countdown.** Covers the current tab, not the whole screen; content and
   dismissal follow section 3. "The first time the user comes back" is
   whichever of these happens first on a day when it has not been shown:
@@ -119,15 +119,16 @@ thing, and this section is the record of those differences.
   then appears each time a listed site loads, once per page load, and never
   anywhere else, so it stays off work pages and shared screens. In that mode
   there is no daily claim, no release and no idle trigger; a page loads, the
-  countdown shows. A forced show from the popup or the strip works on any page
-  in either mode.
-- **Settings.** The four values of section 6 plus the site list, entered on
-  an options page instead of a file, kept in the browser's synced extension
-  storage. The last-shown date lives in local extension storage.
-- **Toolbar.** The icon is the miniature strip of section 4, redrawn with the
+  countdown shows. A forced show from the popup works on any page in either
+  mode.
+- **Settings.** The date of birth and the countdown switch of section 6 (no
+  strip, no quiet hours), the countdown's mode and its site list, entered on
+  an options page instead of a file and kept in the browser's synced
+  extension storage. The last-shown date lives in local extension storage.
+- **Toolbar.** The icon is the miniature bar of section 4, redrawn with the
   real fraction; its tooltip is `Final Days · 18,271 days left`. Its popup
-  holds the days left, the day count, **Show the countdown**, the strip
-  switch and a link to the options.
+  holds the days left, the day count, **Show the countdown** and a link to
+  the options. There is no keyboard shortcut.
 - **Not ported.** Start-with-Windows (the browser starts the extension), the
   config file, and hiding behind full-screen applications (a full-screen video
-  already covers the page, so the strip and the countdown are not seen over it).
+  already covers the page, so the countdown is not seen over it).

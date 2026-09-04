@@ -15,7 +15,7 @@
 
   <section class="preview" id="preview" hidden>
     <div class="life"><div class="rest" id="rest"></div></div>
-    <p class="tip" id="tip"></p>
+    <p class="tip" id="day-label"></p>
   </section>
 
   <form id="form" novalidate>
@@ -23,11 +23,6 @@
       <span>Date of birth</span>
       <input type="date" id="birth" required>
       <small>The only number that matters. Lifespan is fixed at 80 years, 29,220 days.</small>
-    </label>
-
-    <label class="check">
-      <input type="checkbox" id="strip">
-      <span>Life bar<small>A 4 px bar along the top of every page, filled from the left as life passes, green through yellow to red. Hover it for the numbers. Alt+Shift+F toggles it.</small></span>
     </label>
 
     <label class="check">
@@ -48,12 +43,6 @@
       <textarea id="sites" rows="3" placeholder="youtube.com, facebook.com, instagram.com, reddit.com, x.com, tiktok.com" spellcheck="false" autocomplete="off" aria-label="Sites"></textarea>
     </fieldset>
 
-    <label class="field">
-      <span>Quiet hours</span>
-      <input type="text" id="quiet" placeholder="09:00-12:00, 14:00-17:00" spellcheck="false" autocomplete="off">
-      <small>The bar turns grey in these ranges. Comma-separated HH:MM-HH:MM; a range may cross midnight. Leave empty for none.</small>
-    </label>
-
     <div class="actions">
       <button type="submit">Save</button>
       <span id="status" class="status" role="status" aria-live="polite"></span>
@@ -61,7 +50,7 @@
   </form>
 
   <footer>
-    <p>The bar overlays the top 4 px of each page; it cannot reserve space the way the Windows version does. It cannot appear on the browser's own pages (settings, new tab, the store) or on PDFs.</p>
+    <p>The countdown covers the tab you are looking at. It cannot appear on the browser's own pages (settings, new tab, the store) or on PDFs.</p>
     <p>Nothing leaves your browser. Your date of birth is kept in the browser's extension storage and follows your profile if browser sync is on.</p>
   </footer>
 </main>

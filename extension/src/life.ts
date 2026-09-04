@@ -59,8 +59,8 @@ export function question(left: number): string {
   return `Is today worth one of your remaining ${formatInt(left)} days?`;
 }
 
-/** The hover label on the strip: "Day 11,201 of 29,220 · 18,019 days left". */
-export function tipText(life: Life): string {
+/** The line under the preview bar on the options page: "Day 11,201 of 29,220 · 18,019 days left". */
+export function dayLabel(life: Life): string {
   return `Day ${formatInt(life.lived)} of ${formatInt(life.total)} · ${formatInt(life.left)} days left`;
 }
 
@@ -97,74 +97,6 @@ export function parseBirth(text: string, today: Date): CalendarDate {
   }
   if (s > localDateString(today)) throw new Error(`Date of birth "${s}" is in the future.`);
   return { year, month, day };
-}
-
-/**
- * A daily window in minutes since midnight, end exclusive. A range that
- * crosses midnight (22:00-06:00) is allowed.
- */
-export interface HourRange {
-  start: number;
-  end: number;
-}
-
-/**
- * Parses "09:00-12:00, 14:00-17:00". Empty means no quiet hours. Throws an
- * Error whose message is fit for showing to the user.
- */
-export function parseHourRanges(text: string): HourRange[] {
-  const out: HourRange[] = [];
-  for (const raw of text.split(',')) {
-    const part = raw.trim();
-    if (part === '') continue;
-    const dash = part.indexOf('-');
-    if (dash < 0) throw new Error(`Quiet hours: "${part}" is not HH:MM-HH:MM.`);
-    out.push({ start: parseHHMM(part.slice(0, dash)), end: parseHHMM(part.slice(dash + 1)) });
-  }
-  return out;
-}
-
-function parseHHMM(text: string): number {
-  const s = text.trim();
-  const m = /^(\d{1,2}):(\d{2})$/.exec(s);
-  const hh = m ? Number(m[1]) : NaN;
-  const mm = m ? Number(m[2]) : NaN;
-  if (!m || hh > 24 || mm > 59 || (hh === 24 && mm !== 0)) {
-    throw new Error(`Quiet hours: "${s}" is not HH:MM.`);
-  }
-  return hh * 60 + mm;
-}
-
-/** Whether the minute of the day falls inside the range. */
-export function rangeContains(r: HourRange, minuteOfDay: number): boolean {
-  if (r.start <= r.end) return minuteOfDay >= r.start && minuteOfDay < r.end;
-  return minuteOfDay >= r.start || minuteOfDay < r.end;
-}
-
-/** Whether the given local time falls inside any range. */
-export function inQuietHours(ranges: HourRange[], now: Date): boolean {
-  const minute = now.getHours() * 60 + now.getMinutes();
-  return ranges.some((r) => rangeContains(r, minute));
-}
-
-/**
- * The next local instant at which the strip may change: the next quiet-hours
- * boundary later today, or else local midnight (when the day count moves).
- */
-export function nextChange(now: Date, ranges: HourRange[]): Date {
-  const y = now.getFullYear();
-  const mo = now.getMonth();
-  const d = now.getDate();
-  let best = new Date(y, mo, d + 1).getTime();
-  const nowMinute = now.getHours() * 60 + now.getMinutes();
-  for (const r of ranges) {
-    for (const m of [r.start, r.end]) {
-      if (m <= nowMinute || m >= 24 * 60) continue;
-      const t = new Date(y, mo, d, Math.floor(m / 60), m % 60).getTime();
-      if (t < best) best = t;
-    }
-  }
-  return new Date(best);
 }
 
 /**

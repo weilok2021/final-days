@@ -1,6 +1,6 @@
-// Options page: the date of birth and the three switches, saved to
-// chrome.storage.sync after validation. Lifespan is not a setting.
-import { computeLife, localDateString, parseBirth, parseHourRanges, parseSiteList, tipText } from './life.ts';
+// Options page: the date of birth, the countdown switch and its mode, saved
+// to chrome.storage.sync after validation. Lifespan is not a setting.
+import { computeLife, dayLabel, localDateString, parseBirth, parseSiteList } from './life.ts';
 import { loadSettings, saveSettings } from './settings.ts';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -11,16 +11,14 @@ function el<T extends HTMLElement>(id: string): T {
 
 const form = el<HTMLFormElement>('form');
 const birth = el<HTMLInputElement>('birth');
-const strip = el<HTMLInputElement>('strip');
 const countdown = el<HTMLInputElement>('countdown');
-const quiet = el<HTMLInputElement>('quiet');
 const sites = el<HTMLTextAreaElement>('sites');
 const modeDaily = el<HTMLInputElement>('mode-daily');
 const modeSites = el<HTMLInputElement>('mode-sites');
 const status = el<HTMLElement>('status');
 const preview = el<HTMLElement>('preview');
 const rest = el<HTMLElement>('rest');
-const tip = el<HTMLElement>('tip');
+const label = el<HTMLElement>('day-label');
 
 birth.max = localDateString(new Date());
 
@@ -29,7 +27,7 @@ function renderPreview(): void {
     const now = new Date();
     const life = computeLife(parseBirth(birth.value, now), now);
     rest.style.width = `${(1 - life.fraction) * 100}%`;
-    tip.textContent = tipText(life);
+    label.textContent = dayLabel(life);
     preview.hidden = false;
   } catch {
     preview.hidden = true;
@@ -44,9 +42,7 @@ function say(message: string, isError: boolean): void {
 async function load(): Promise<void> {
   const settings = await loadSettings();
   birth.value = settings.birth;
-  strip.checked = settings.strip;
   countdown.checked = settings.countdown;
-  quiet.value = settings.quietHours;
   sites.value = settings.countdownSites;
   modeDaily.checked = settings.countdownMode === 'daily';
   modeSites.checked = settings.countdownMode === 'sites';
@@ -65,7 +61,6 @@ form.addEventListener('submit', (event) => {
 async function save(): Promise<void> {
   try {
     parseBirth(birth.value, new Date());
-    parseHourRanges(quiet.value);
     const list = parseSiteList(sites.value);
     if (modeSites.checked && list.length === 0) throw new Error('Enter at least one site for the countdown to appear on.');
   } catch (err) {
@@ -74,9 +69,7 @@ async function save(): Promise<void> {
   }
   await saveSettings({
     birth: birth.value.trim(),
-    strip: strip.checked,
     countdown: countdown.checked,
-    quietHours: quiet.value.trim(),
     countdownMode: modeSites.checked ? 'sites' : 'daily',
     countdownSites: sites.value.trim(),
   });
@@ -85,6 +78,6 @@ async function save(): Promise<void> {
 }
 
 birth.addEventListener('input', renderPreview);
-for (const input of [birth, strip, countdown, quiet, sites, modeDaily, modeSites]) input.addEventListener('input', () => say('', false));
+for (const input of [birth, countdown, sites, modeDaily, modeSites]) input.addEventListener('input', () => say('', false));
 
 void load();

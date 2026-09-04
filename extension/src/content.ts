@@ -1,7 +1,7 @@
-// Content script: the 4 px life bar at the top of every page and the daily
-// countdown overlay. It is a classic script (no imports) and computes nothing
-// itself: everything it shows arrives from the background worker in one
-// message, so the numbers and wording live in exactly one place (life.ts).
+// Content script: the daily countdown overlay. It is a classic script (no
+// imports) and computes nothing itself: everything it shows arrives from the
+// background worker in one message, so the numbers and wording live in
+// exactly one place (life.ts). Between countdowns it draws nothing.
 (() => {
   const docRoot = document.documentElement;
   if (!(docRoot instanceof HTMLElement)) return; // XML, SVG and other non-HTML documents
@@ -9,14 +9,12 @@
   const Z_INDEX = '2147483647';
   const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
   const GRADIENT = 'linear-gradient(90deg, #16a34a 0%, #eab308 50%, #dc2626 100%)';
-  const QUIET_GREY = '#6b7280';
-  const TIP_DELAY_MS = 350;
   /** A countdown on screen this long counts as seen even if the page then goes away. */
   const SEEN_AFTER_MS = 3000;
   /** Identifies this document to the worker; a redirect target is a new document with a new id. */
   const DOC_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
-  /** Inline !important declarations beat any stylesheet the page has for our host elements. */
+  /** Inline !important declarations beat any stylesheet the page has for our host element. */
   function pin(el: HTMLElement, props: Record<string, string>): void {
     for (const [name, value] of Object.entries(props)) el.style.setProperty(name, value, 'important');
   }
@@ -44,81 +42,7 @@
     'font-size': '16px',
   };
 
-  // ---- the strip ------------------------------------------------------------
-
-  interface StripEls {
-    host: HTMLElement;
-    bar: HTMLElement;
-    rest: HTMLElement;
-    tip: HTMLElement;
-  }
-
-  let strip: StripEls | null = null;
-  let tipTimer = 0;
-  let tipX = 0;
-
-  function mountStrip(): StripEls {
-    const host = document.createElement('final-days-strip');
-    pin(host, { ...HOST_RESET, top: '0', left: '0', right: '0', height: '4px' });
-    host.setAttribute('aria-hidden', 'true');
-    const shadow = host.attachShadow({ mode: 'closed' });
-    adopt(
-      shadow,
-      `.bar{position:absolute;top:0;left:0;right:0;bottom:0}
-.rest{position:absolute;top:0;bottom:0;right:0;background:#e7e5e4}
-.tip{position:fixed;top:10px;left:0;transform:translateX(-50%);background:#1f2430;color:#fff;font:13px/1.2 ${FONT};font-variant-numeric:tabular-nums;padding:6px 10px;border-radius:6px;white-space:nowrap;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.25)}
-.tip[hidden]{display:none}`,
-    );
-    shadow.innerHTML = '<div class="bar"><div class="rest"></div></div><div class="tip" hidden></div>';
-    const els: StripEls = {
-      host,
-      bar: shadow.querySelector<HTMLElement>('.bar')!,
-      rest: shadow.querySelector<HTMLElement>('.rest')!,
-      tip: shadow.querySelector<HTMLElement>('.tip')!,
-    };
-    // The label appears after a short hover so that a mouse passing through
-    // the bar on its way to the browser's tabs does not flash it.
-    host.addEventListener('mouseenter', (e) => {
-      tipX = e.clientX;
-      window.clearTimeout(tipTimer);
-      tipTimer = window.setTimeout(() => {
-        els.tip.hidden = false;
-        placeTip(els);
-      }, TIP_DELAY_MS);
-    });
-    host.addEventListener('mousemove', (e) => {
-      tipX = e.clientX;
-      if (!els.tip.hidden) placeTip(els);
-    });
-    host.addEventListener('mouseleave', () => {
-      window.clearTimeout(tipTimer);
-      els.tip.hidden = true;
-    });
-    host.addEventListener('click', () => void refresh('force'));
-    docRoot.appendChild(host);
-    return els;
-  }
-
-  function placeTip(els: StripEls): void {
-    const half = els.tip.offsetWidth / 2 + 6;
-    const x = Math.min(Math.max(tipX, half), window.innerWidth - half);
-    els.tip.style.left = `${x}px`;
-  }
-
-  function renderStrip(view: StripView | null): void {
-    if (!view) {
-      strip?.host.remove();
-      strip = null;
-      return;
-    }
-    if (!strip) strip = mountStrip();
-    else if (!strip.host.isConnected) docRoot.appendChild(strip.host); // the page rebuilt its DOM
-    strip.bar.style.background = view.quiet ? QUIET_GREY : GRADIENT;
-    strip.rest.style.width = `${(1 - view.fraction) * 100}%`;
-    strip.tip.textContent = view.tip;
-  }
-
-  // ---- the countdown -----------------------------------------------------------
+  // ---- the countdown --------------------------------------------------------
 
   let countdown: HTMLElement | null = null;
   /** Claim token of the countdown on screen, "" when none or when it was a forced show. */
@@ -184,10 +108,10 @@
   }
 
   /**
-   * The page is going away (navigation, redirect, close). If the countdown is up
-   * and had only just appeared, nobody can have read it: give the day back so
-   * the next page shows it. If it had been up for a few seconds, the user saw
-   * it and chose to move on, which counts as seen. If a check is still
+   * The page is going away (navigation, redirect, close). If the countdown is
+   * up and had only just appeared, nobody can have read it: give the day back
+   * so the next page shows it. If it had been up for a few seconds, the user
+   * saw it and chose to move on, which counts as seen. If a check is still
    * unanswered, tell the worker so its answer cannot claim the day for a page
    * that no longer exists.
    */
@@ -213,7 +137,6 @@
 
   /** Local date for which this tab already knows no countdown is due; "" means ask. */
   let countdownDoneFor = '';
-  let changeTimer = 0;
   /** Countdown checks sent and not yet answered. */
   let checksInFlight = 0;
 
@@ -224,38 +147,23 @@
   }
 
   async function refresh(mode: HelloMessage['countdown']): Promise<void> {
-    if (mode === 'check' && (countdownDoneFor === localToday() || document.visibilityState !== 'visible')) mode = 'none';
+    if (mode === 'check' && (countdownDoneFor === localToday() || document.visibilityState !== 'visible')) return;
     const message: HelloMessage = { type: 'hello', doc: DOC_ID, countdown: mode, host: location.hostname };
     let reply: HelloReply | undefined;
-    if (mode !== 'none') checksInFlight++;
+    checksInFlight++;
     try {
       reply = await chrome.runtime.sendMessage<HelloMessage, HelloReply | undefined>(message);
     } catch {
       // The worker was unreachable. If the extension itself was disabled,
-      // removed or reloaded, this script is orphaned: take the bar down.
-      if (!chrome.runtime?.id) teardown();
+      // removed or reloaded, this script is orphaned: take the countdown down.
+      if (!chrome.runtime?.id) hideCountdown();
       return;
     } finally {
-      if (mode !== 'none') checksInFlight--;
+      checksInFlight--;
     }
     if (!reply) return;
-    renderStrip(reply.strip);
     if (reply.countdown) showCountdown(reply.countdown);
     countdownDoneFor = reply.countdownDoneFor;
-    schedule(reply.nextChangeAt);
-  }
-
-  /** Re-render when the day count or the quiet-hours state next changes. */
-  function schedule(at: number): void {
-    window.clearTimeout(changeTimer);
-    const delay = Math.min(Math.max(at - Date.now(), 0) + 1000, 0x7fffffff);
-    changeTimer = window.setTimeout(() => void refresh('none'), delay);
-  }
-
-  function teardown(): void {
-    window.clearTimeout(changeTimer);
-    renderStrip(null);
-    hideCountdown();
   }
 
   document.addEventListener('visibilitychange', () => {
@@ -264,14 +172,8 @@
   window.addEventListener('focus', () => void refresh('check'));
   window.addEventListener('pagehide', onPageHide);
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local') {
-      // The day was claimed or released somewhere: ask again on the next return.
-      if ('lastCountdown' in changes) countdownDoneFor = '';
-      return;
-    }
-    if (area !== 'sync') return;
-    countdownDoneFor = '';
-    void refresh('none');
+    // The day was claimed or released somewhere, or a setting changed: ask again on the next return.
+    if (area === 'sync' || (area === 'local' && 'lastCountdown' in changes)) countdownDoneFor = '';
   });
   chrome.runtime.onMessage.addListener((message: FdMessage) => {
     if (message?.type !== 'countdownPrompt') return;
@@ -280,5 +182,5 @@
     void refresh(message.force ? 'force' : 'check');
   });
 
-  void refresh(document.visibilityState === 'visible' ? 'check' : 'none');
+  if (document.visibilityState === 'visible') void refresh('check');
 })();

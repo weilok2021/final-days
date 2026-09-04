@@ -1,7 +1,7 @@
 // End-to-end test of the built extension in Playwright's Chromium. It loads
 // extension/dist unpacked, answers every https request itself with a small
-// fake page (no real network), and drives the options page, the strip and the
-// countdown the way a person would. Run: npm run build && npm run e2e
+// fake page (no real network), and drives the options page and the countdown
+// the way a person would. Run: npm run build && npm run e2e
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { chromium, type BrowserContext, type Page } from 'playwright';
-import { computeLife, formatInt, localDateString, countdownLine, parseBirth, tipText } from '../src/life.ts';
+import { computeLife, countdownLine, dayLabel, formatInt, localDateString, parseBirth } from '../src/life.ts';
 
 const DIST = resolve(import.meta.dirname, '../dist');
 const SHOTS = process.env['FD_SHOTS'] ?? join(tmpdir(), 'final-days-shots');
@@ -76,24 +76,19 @@ const resetDay = () => options.evaluate(() => chrome.storage.local.clear());
 
 async function saveOptions(values: {
   birth?: string;
-  strip?: boolean;
   countdown?: boolean;
-  quiet?: string;
   mode?: 'daily' | 'sites';
   sites?: string;
 }): Promise<void> {
   if (values.birth !== undefined) await options.fill('#birth', values.birth);
   if (values.mode !== undefined) await options.check(values.mode === 'sites' ? '#mode-sites' : '#mode-daily');
-  if (values.strip !== undefined) await options.setChecked('#strip', values.strip);
   if (values.countdown !== undefined) await options.setChecked('#countdown', values.countdown);
-  if (values.quiet !== undefined) await options.fill('#quiet', values.quiet);
   if (values.sites !== undefined) await options.fill('#sites', values.sites);
   await options.click('button[type=submit]');
   await options.locator('#status').filter({ hasText: 'Saved.' }).waitFor({ timeout: 5_000 });
   await sleep(400); // let every open page pick up the change
 }
 
-const strip = (page: Page) => page.locator('final-days-strip');
 const countdown = (page: Page) => page.locator('final-days-countdown');
 
 async function expectNoCountdown(page: Page, what: string): Promise<void> {
@@ -133,15 +128,15 @@ test('the options page opens on install and saves the date of birth', SLOW, asyn
   await saveOptions({ birth: BIRTH });
   const now = new Date();
   const life = computeLife(parseBirth(BIRTH, now), now);
-  assert.equal(await options.locator('#tip').textContent(), tipText(life));
+  assert.equal(await options.locator('#day-label').textContent(), dayLabel(life));
   await shot(options, '01-options-saved');
 });
 
 test('the options page refuses bad input without saving it', SLOW, async () => {
-  await options.fill('#quiet', '9-12');
+  await options.fill('#birth', '2999-01-01');
   await options.click('button[type=submit]');
-  assert.match((await options.locator('#status').textContent()) ?? '', /"9" is not HH:MM/);
-  await options.fill('#quiet', '');
+  assert.match((await options.locator('#status').textContent()) ?? '', /in the future/);
+  await options.fill('#birth', BIRTH);
   await options.fill('#sites', 'you tube.com');
   await options.click('button[type=submit]');
   assert.match((await options.locator('#status').textContent()) ?? '', /not a site name/);
@@ -151,22 +146,18 @@ test('the options page refuses bad input without saving it', SLOW, async () => {
   assert.match((await options.locator('#status').textContent()) ?? '', /at least one site/);
   await options.check('#mode-daily');
   const settings = await options.evaluate(() => chrome.storage.sync.get(null));
-  assert.equal(settings['quietHours'], '');
+  assert.equal(settings['birth'], BIRTH);
   assert.equal(settings['countdownSites'] ?? '', '');
 });
 
 let page: Page;
 
-test('the strip and the first countdown of the day appear on the first page', SLOW, async () => {
+test('the first countdown of the day appears on the first page', SLOW, async () => {
   page = await context.newPage();
   await page.goto('https://example.com/');
-  await strip(page).waitFor({ state: 'attached', timeout: 10_000 });
-  const box = await strip(page).boundingBox();
-  assert.deepEqual(box, { x: 0, y: 0, width: VIEWPORT.width, height: 4 });
-
   await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
-  const mbox = await countdown(page).boundingBox();
-  assert.deepEqual(mbox, { x: 0, y: 0, width: VIEWPORT.width, height: VIEWPORT.height });
+  const box = await countdown(page).boundingBox();
+  assert.deepEqual(box, { x: 0, y: 0, width: VIEWPORT.width, height: VIEWPORT.height });
   await shot(page, '02-countdown');
   assertColour(await pixel(page, 100, 100), '#0b0d12', 'countdown background');
   assertColour(await pixel(page, 5, 1), '#16a34a', 'countdown bar, lived end');
@@ -178,37 +169,21 @@ test('the strip and the first countdown of the day appear on the first page', SL
   assert.notEqual(s['countdownToken'], '');
 });
 
-test('a click dismisses the countdown and a reload does not bring it back', SLOW, async () => {
+test('a click dismisses the countdown, leaves the page untouched, and a reload does not bring it back', SLOW, async () => {
   await page.mouse.click(640, 360);
   await countdown(page).waitFor({ state: 'detached', timeout: 5_000 });
   await page.reload();
-  await strip(page).waitFor({ state: 'attached', timeout: 10_000 });
   await expectNoCountdown(page, 'after reload');
-  await shot(page, '03-strip-only');
-  assertColour(await pixel(page, 5, 2), '#16a34a', 'strip, lived end');
-  assertColour(await pixel(page, 1275, 2), '#e7e5e4', 'strip, remainder');
-  assertColour(await pixel(page, 640, 20), '#dddddd', 'page header just under the strip');
+  await shot(page, '03-page-between-countdowns');
+  assertColour(await pixel(page, 5, 2), '#dddddd', 'page header at the very top: nothing drawn over it');
+  assertColour(await pixel(page, 640, 20), '#dddddd', 'page header');
 });
 
-test('a second page today shows the strip but no countdown', SLOW, async () => {
+test('a second page today shows no countdown', SLOW, async () => {
   const other = await context.newPage();
   await other.goto('https://example.org/');
-  await strip(other).waitFor({ state: 'attached', timeout: 10_000 });
   await expectNoCountdown(other, 'second page');
   await other.close();
-});
-
-test('the hover label appears after a short pause', SLOW, async () => {
-  await page.bringToFront();
-  await page.mouse.move(300, 2);
-  await sleep(150);
-  assertColour(await pixel(page, 190, 20), '#dddddd', 'no label yet');
-  await sleep(600);
-  assertColour(await pixel(page, 190, 20), '#1f2430', 'label background');
-  await page.screenshot({ path: join(SHOTS, '04-hover-label.png'), clip: { x: 0, y: 0, width: 640, height: 60 } });
-  await page.mouse.move(640, 400);
-  await sleep(100);
-  assertColour(await pixel(page, 190, 20), '#dddddd', 'label gone');
 });
 
 test('keys dismiss the countdown and are swallowed only while it is up', SLOW, async () => {
@@ -232,27 +207,21 @@ test('several tabs loading at once show the countdown exactly once', SLOW, async
   await Promise.all(pages.map((p) => p.close()));
 });
 
-test('quiet hours turn the lived part grey', SLOW, async () => {
-  await saveOptions({ quiet: '00:00-24:00' });
-  assertColour(await pixel(page, 5, 2), '#6b7280', 'strip in quiet hours');
-  assertColour(await pixel(page, 1275, 2), '#e7e5e4', 'remainder in quiet hours');
-  await shot(page, '05-quiet-hours');
-  await saveOptions({ quiet: '' });
-  assertColour(await pixel(page, 5, 2), '#16a34a', 'strip after quiet hours');
-});
-
-test('switching the strip off removes it from open pages', SLOW, async () => {
-  await saveOptions({ strip: false });
-  assert.equal(await strip(page).count(), 0);
-  assertColour(await pixel(page, 5, 2), '#dddddd', 'page header where the strip was');
-  await saveOptions({ strip: true });
-  await strip(page).waitFor({ state: 'attached', timeout: 5_000 });
+test('switching the countdown off stops it, and on brings it back', SLOW, async () => {
+  await saveOptions({ countdown: false });
+  await resetDay();
+  await page.goto('https://example.com/');
+  await expectNoCountdown(page, 'countdown switched off');
+  await saveOptions({ countdown: true });
+  await page.goto('https://example.com/');
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.mouse.click(640, 360);
 });
 
 test('in the sites mode the countdown appears on every load of a listed site and nowhere else', SLOW, async () => {
   await saveOptions({ mode: 'sites', sites: 'youtube.com, facebook.com' });
+  await resetDay();
   await page.goto('https://github.com/');
-  await strip(page).waitFor({ state: 'attached', timeout: 10_000 });
   await expectNoCountdown(page, 'unlisted site');
   await page.goto('https://www.youtube.com/');
   await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
@@ -310,8 +279,7 @@ test('the popup shows the numbers', SLOW, async () => {
   await popup.locator('#ready').waitFor({ state: 'visible', timeout: 5_000 });
   assert.equal(await popup.locator('#left').textContent(), formatInt(life.left));
   assert.equal(await popup.locator('#line').textContent(), countdownLine(life));
-  assert.equal(await popup.locator('#strip').isChecked(), true);
-  await popup.setViewportSize({ width: 260, height: 240 });
+  await popup.setViewportSize({ width: 260, height: 220 });
   await shot(popup, '07-popup');
   await popup.close();
 });
