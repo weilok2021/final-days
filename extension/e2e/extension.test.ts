@@ -320,7 +320,7 @@ test('a settings change does not repeat a countdown a page has already shown', S
   await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
   await page.mouse.click(640, 360);
   await countdown(page).waitFor({ state: 'detached', timeout: 5_000 });
-  await saveOptions({ countdown: true });
+  await saveOptions({ sites: 'reddit.com' }); // a real change to the stored settings; the list itself is idle in this mode
   await comeBack(page);
   await expectNoCountdown(page, 'daily mode, after a settings change');
   await page.goto('https://example.org/');

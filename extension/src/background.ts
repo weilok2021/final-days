@@ -212,27 +212,23 @@ function claimCountdown(today: string, force: boolean, doc: string): Promise<str
 /**
  * The page went away before anyone saw the countdown: give the day back. With
  * the empty token the page died with its check unanswered; if the answer
- * already claimed the day for it (within the window), undo that, otherwise
- * make sure it cannot.
+ * already claimed the day for it (within the window), undo that. Either way
+ * the page is gone, so any claim it still has in flight is refused: a check
+ * sent while its countdown was up must not re-take the day after this release.
  */
 function releaseCountdown(doc: string, token: string): Promise<void> {
   return serial(async () => {
     const book = await readBook();
-    if (token === '') {
-      if (book.lastClaim?.doc !== doc) {
-        book.abandoned[doc] = Date.now();
-        await writeBook(book);
-        return;
+    book.abandoned[doc] = Date.now();
+    if (token === '' && book.lastClaim?.doc === doc) token = book.lastClaim.token;
+    if (token !== '') {
+      const state = await readState();
+      if (state.countdownToken === token) {
+        await chrome.storage.local.remove(['lastCountdown', 'countdownToken']);
+        if (book.lastClaim?.token === token) book.lastClaim = null;
       }
-      token = book.lastClaim.token;
     }
-    const state = await readState();
-    if (state.countdownToken !== token) return; // a different claim owns the day now
-    await chrome.storage.local.remove(['lastCountdown', 'countdownToken']);
-    if (book.lastClaim?.token === token) {
-      book.lastClaim = null;
-      await writeBook(book);
-    }
+    await writeBook(book);
   });
 }
 
