@@ -1,20 +1,17 @@
-# Binaries and build output
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-*.test
-*.out
+# Build output
 dist/
-
-# Go
-go.work
-go.work.sum
-vendor/
 
 # Worktrees and local editor state
 .worktrees/
 .vscode/
 .idea/
 *.swp
+
+# Node
+node_modules/
+
+# Ephemeral QA scratchpad, never merged
+**/QA-CHECKLIST.md
+
+# Local Claude Code skills and settings, never merged
+.claude/

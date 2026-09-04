@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Final Days · Options</title>
+<link rel="stylesheet" href="options.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Final Days</h1>
+    <p class="tagline">Every day left is one of your final days.</p>
+  </header>
+
+  <section class="preview" id="preview" hidden>
+    <div class="life"><div class="rest" id="rest"></div></div>
+    <p class="tip" id="day-label"></p>
+  </section>
+
+  <form id="form" novalidate>
+    <label class="field">
+      <span>Date of birth</span>
+      <input type="date" id="birth" required>
+      <small>The only number that matters. Lifespan is fixed at 80 years, 29,220 days.</small>
+    </label>
+
+    <label class="check">
+      <input type="checkbox" id="countdown">
+      <span>The countdown<small>The page goes dark and shows how many days you have left, with your life as a bar. One click and it is gone.</small></span>
+    </label>
+
+    <fieldset class="field sub">
+      <legend>When</legend>
+      <label class="check">
+        <input type="radio" name="countdownMode" id="mode-daily" value="daily">
+        <span>Once a day, the first time you come back to the browser<small>Wherever that is. A page that redirects, or one you leave within three seconds, does not count.</small></span>
+      </label>
+      <label class="check">
+        <input type="radio" name="countdownMode" id="mode-sites" value="sites">
+        <span>Every time you open one of these sites<small>And never anywhere else, so it stays off work pages and shared screens. Once per page load; subdomains count.</small></span>
+      </label>
+      <textarea id="sites" rows="3" placeholder="youtube.com, facebook.com, instagram.com, reddit.com, x.com, tiktok.com" spellcheck="false" autocomplete="off" aria-label="Sites"></textarea>
+    </fieldset>
+
+    <div class="actions">
+      <button type="submit">Save</button>
+      <span id="status" class="status" role="status" aria-live="polite"></span>
+    </div>
+  </form>
+
+  <footer>
+    <p>The countdown covers the tab you are looking at. It cannot appear on the browser's own pages (settings, new tab, the store) or on PDFs.</p>
+    <p>Nothing leaves your browser. Your date of birth is kept in the browser's extension storage and follows your profile if browser sync is on.</p>
+  </footer>
+</main>
+<script type="module" src="options.js"></script>
+</body>
+</html>

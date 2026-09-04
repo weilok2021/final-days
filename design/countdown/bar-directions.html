@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Countdown bar directions</title>
+<style>
+  :root{--ink:#1f2430;--muted:#6b7280;--line:#e5e7eb;--bg:#fafaf9;--card:#fff;--accent:#c2410c;--rest-dark:#27272a;
+        --life:linear-gradient(90deg,#16a34a 0%,#eab308 50%,#dc2626 100%)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  main{max-width:1040px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-size:30px;font-weight:600;letter-spacing:-.01em;margin:0 0 8px}
+  h2{font-size:20px;font-weight:600;margin:56px 0 6px}
+  p{margin:0 0 12px}
+  .sub{color:var(--muted);margin:0 0 18px;max-width:760px}
+  .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-left:8px;vertical-align:middle;font-weight:400}
+  .tag.rec{border-color:var(--accent);color:var(--accent)}
+  .controls{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:24px}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+  input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  .stats{display:flex;gap:28px;margin-left:auto}
+  .stat b{display:block;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+  .stat span{font-size:12px;color:var(--muted)}
+
+  /* The browser tab: a 16:9 viewport. Container units make the overlay's vh-based sizes honest. */
+  .tab{border:1px solid var(--line);border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.08);background:#fff}
+  .chrome{height:34px;background:#dee1e6;display:flex;align-items:flex-end;padding:0 12px;gap:6px}
+  .chrome i{display:block;width:140px;height:28px;background:#fff;border-radius:8px 8px 0 0}
+  .chrome i.in{background:#cfd3d9}
+  .frame{position:relative;width:100%;aspect-ratio:16/9;background:#0b0d12;container-type:size;overflow:hidden}
+  .root{position:absolute;inset:0;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;user-select:none}
+  .big{font-size:16cqh;font-weight:600;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .line{margin-top:1.6cqh;font-size:max(2cqh,11px);color:#a1a1aa;font-variant-numeric:tabular-nums}
+  .q{margin-top:6cqh;padding:0 6cqw;font-size:max(2.3cqh,12px);font-style:italic;color:#e4e4e7}
+  .foot{position:absolute;bottom:4cqh;left:0;right:0;font-size:max(1.2cqh,9px);color:#52525b}
+  /* life bar: full-length gradient, the remainder covered in grey */
+  .life{position:relative;background:var(--life);overflow:hidden}
+  .life .rest{position:absolute;right:0;top:0;bottom:0;background:var(--rest-dark)}
+  .edge{position:absolute;left:0;right:0;top:0}
+  .edge.h3{height:3px}
+  .edge.h6{height:6px}
+  .under{width:60%;height:6px;margin-top:3.2cqh}
+  .ends{width:60%;margin-top:3.2cqh}
+  .ends .life{height:6px}
+  .ends .cap{display:flex;justify-content:space-between;margin-top:1cqh;font-size:max(1.6cqh,10px);color:#71717a;font-variant-numeric:tabular-nums}
+  .zoom{margin-top:14px;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:14px 16px}
+  .zoom .label{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .zoombar{height:24px;border-radius:2px}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+  td:first-child{font-weight:600;white-space:nowrap}
+  .rec{border:1px solid var(--accent);border-radius:12px;padding:20px 22px;margin-top:20px;background:#fff7ed}
+  .rec h3{margin:0 0 8px;font-size:16px}
+  .rec p:last-child{margin:0}
+  .note{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Countdown: where the life bar goes now</h1>
+  <p class="sub">The always-on bar leaves web pages. The countdown is the one place it still appears, so it should be part of the message rather than a hairline at the edge. Each mockup is the countdown as a Chrome tab at 16:9; the sizes are the real overlay's (the big number is 16 % of the viewport height). Put in a date of birth and every bar updates. Colours are the spec's: green through yellow to red for the days lived, <code>#27272a</code> for the days left.</p>
+
+  <div class="controls">
+    <div><label for="birth">Date of birth</label><input type="date" id="birth" value="1996-01-01"></div>
+    <div class="stats">
+      <div class="stat"><b data-v="lived">–</b><span>days lived</span></div>
+      <div class="stat"><b data-v="left">–</b><span>days left</span></div>
+      <div class="stat"><b data-v="pct">–</b><span>of life used</span></div>
+    </div>
+  </div>
+
+  <h2>Today <span class="tag">for reference: the 3 px strip along the top</span></h2>
+  <p class="sub">What the branch shows now. The bar is the spec's 3 px line at the very top of the overlay. Easy to miss, which is the whole complaint.</p>
+  <div class="tab"><div class="chrome"><i></i><i class="in"></i></div>
+    <div class="frame"><div class="root">
+      <div class="life edge h3"><div class="rest" data-rest></div></div>
+      <div class="big" data-v="left"></div>
+      <div class="line">days left · day <span data-v="lived"></span> of 29,220</div>
+      <div class="q">Is today worth one of your remaining <span data-v="left"></span> days?</div>
+      <div class="foot">click anywhere to continue</div>
+    </div></div>
+  </div>
+
+  <h2>A. Under the number <span class="tag rec">recommended</span></h2>
+  <p class="sub">One bar, 6 px tall and 60 % of the viewport wide, centred between the big number and the numbers line. The eye reads the number, then the bar, then the line that explains both. Nothing at the edge.</p>
+  <div class="tab"><div class="chrome"><i></i><i class="in"></i></div>
+    <div class="frame"><div class="root">
+      <div class="big" data-v="left"></div>
+      <div class="life under"><div class="rest" data-rest></div></div>
+      <div class="line">days left · day <span data-v="lived"></span> of 29,220</div>
+      <div class="q">Is today worth one of your remaining <span data-v="left"></span> days?</div>
+      <div class="foot">click anywhere to continue</div>
+    </div></div>
+  </div>
+  <div class="zoom"><div class="label">The bar at 4× zoom, 60 % of a 1280 px viewport</div><div class="life zoombar"><div class="rest" data-rest></div></div></div>
+
+  <h2>B. Top edge, grown to 6 px <span class="tag">spec layout kept</span></h2>
+  <p class="sub">The spec's layout unchanged, with the strip along the top edge twice as tall. Still an edge, still easy to skip past; the least change.</p>
+  <div class="tab"><div class="chrome"><i></i><i class="in"></i></div>
+    <div class="frame"><div class="root">
+      <div class="life edge h6"><div class="rest" data-rest></div></div>
+      <div class="big" data-v="left"></div>
+      <div class="line">days left · day <span data-v="lived"></span> of 29,220</div>
+      <div class="q">Is today worth one of your remaining <span data-v="left"></span> days?</div>
+      <div class="foot">click anywhere to continue</div>
+    </div></div>
+  </div>
+
+  <h2>C. Both <span class="tag">A plus the edge strip</span></h2>
+  <p class="sub">The 3 px edge strip stays and the bar under the number is added. Two bars saying the same thing; shown so the choice is a fair one.</p>
+  <div class="tab"><div class="chrome"><i></i><i class="in"></i></div>
+    <div class="frame"><div class="root">
+      <div class="life edge h3"><div class="rest" data-rest></div></div>
+      <div class="big" data-v="left"></div>
+      <div class="life under"><div class="rest" data-rest></div></div>
+      <div class="line">days left · day <span data-v="lived"></span> of 29,220</div>
+      <div class="q">Is today worth one of your remaining <span data-v="left"></span> days?</div>
+      <div class="foot">click anywhere to continue</div>
+    </div></div>
+  </div>
+
+  <h2>D. Numbers at the ends <span class="tag">a labelled bar</span></h2>
+  <p class="sub">The numbers line splits: "days left" stays under the big number, and the day count sits at the two ends of the bar, where it explains what the bar measures. Slightly more to read.</p>
+  <div class="tab"><div class="chrome"><i></i><i class="in"></i></div>
+    <div class="frame"><div class="root">
+      <div class="big" data-v="left"></div>
+      <div class="line">days left</div>
+      <div class="ends"><div class="life"><div class="rest" data-rest></div></div>
+        <div class="cap"><span>day <span data-v="lived"></span></span><span>of 29,220</span></div></div>
+      <div class="q">Is today worth one of your remaining <span data-v="left"></span> days?</div>
+      <div class="foot">click anywhere to continue</div>
+    </div></div>
+  </div>
+
+  <h2>How they compare</h2>
+  <table>
+    <tr><th>Form</th><th>Where the bar is</th><th>Change to the spec's section 3</th><th>Reads as</th></tr>
+    <tr><td>A. Under the number</td><td>6 px, 60 % wide, between number and line</td><td>Top strip replaced by a centred bar (recorded in section 7)</td><td>Part of the message</td></tr>
+    <tr><td>B. Top edge, 6 px</td><td>Full width along the top edge</td><td>3 px becomes 6 px</td><td>A border</td></tr>
+    <tr><td>C. Both</td><td>Edge and centre</td><td>A centred bar added</td><td>Repetition</td></tr>
+    <tr><td>D. Numbers at the ends</td><td>6 px, 60 % wide, day count at its ends</td><td>Top strip replaced; numbers line split in two</td><td>A measurement</td></tr>
+  </table>
+
+  <div class="rec">
+    <h3>Recommendation: A</h3>
+    <p>The bar left the pages because a line at an edge stops registering. Putting it back at an edge, only thicker, repeats that mistake inside the countdown. Under the number it is looked at every time the number is, and the existing line already says what it measures, so no labels are needed. D is the runner-up if you want the day count to sit on the bar itself.</p>
+  </div>
+  <p class="note">Wording, colours and the numbers line are unchanged from SPEC.md. Lifespan is fixed at 80 years, 29,220 days.</p>
+</main>
+<script>
+  const TOTAL = 29220;
+  const birth = document.getElementById('birth');
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function render() {
+    const b = new Date(birth.value + 'T00:00:00');
+    const now = new Date();
+    const lived = Number.isNaN(b.getTime()) ? 0 : Math.max(0, Math.floor((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(b.getFullYear(), b.getMonth(), b.getDate())) / 86400000));
+    const left = Math.max(0, TOTAL - lived);
+    const fraction = Math.min(1, lived / TOTAL);
+    for (const el of document.querySelectorAll('[data-rest]')) el.style.width = ((1 - fraction) * 100) + '%';
+    const values = { lived: fmt(lived), left: fmt(left), pct: Math.round(fraction * 100) + ' %' };
+    for (const el of document.querySelectorAll('[data-v]')) el.textContent = values[el.dataset.v];
+  }
+  birth.addEventListener('input', render);
+  render();
+</script>
+</body>
+</html>

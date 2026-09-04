@@ -1,0 +1,61 @@
+:root {
+  --ink: #1f2430;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --bg: #fafaf9;
+  --card: #ffffff;
+  --accent: #1f2430;
+  --accent-ink: #ffffff;
+  --error: #b91c1c;
+  --rest: #e7e5e4;
+  --life: linear-gradient(90deg, #16a34a 0%, #eab308 50%, #dc2626 100%);
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e4e4e7;
+    --muted: #a1a1aa;
+    --line: #27272a;
+    --bg: #0b0d12;
+    --card: #14161c;
+    --accent: #e4e4e7;
+    --accent-ink: #0b0d12;
+    --error: #f87171;
+    --rest: #27272a;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 560px; margin: 0 auto; padding: 48px 24px 64px; }
+h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+.tagline { margin: 4px 0 28px; color: var(--muted); }
+.preview { margin: 0 0 28px; }
+.life { position: relative; height: 6px; background: var(--life); overflow: hidden; border-radius: 1px; }
+.life .rest { position: absolute; top: 0; bottom: 0; right: 0; background: var(--rest); }
+.tip { margin: 10px 0 0; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; }
+form { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px 22px; }
+.field { display: block; margin: 0 0 22px; }
+.field > span { display: block; font-weight: 600; margin-bottom: 6px; }
+.field input, .field textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); width: 100%; max-width: 320px; }
+.field textarea { max-width: none; resize: vertical; line-height: 1.4; }
+.field input:focus, .field textarea:focus, .actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+small { display: block; color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.45; }
+.check { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 22px; cursor: pointer; }
+fieldset.sub { border: 0; padding: 0 0 0 28px; margin: -6px 0 22px; }
+fieldset.sub legend { font-weight: 600; margin-bottom: 10px; padding: 0; }
+fieldset.sub .check { margin-bottom: 14px; }
+fieldset.sub textarea { margin-top: 2px; }
+.check input { margin: 5px 0 0; width: 16px; height: 16px; flex: none; }
+.check > span { font-weight: 600; }
+.check small { font-weight: 400; margin-top: 2px; }
+.actions { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+button { font: inherit; font-weight: 600; padding: 8px 18px; border-radius: 8px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+.status { color: var(--muted); font-size: 14px; }
+.status.error { color: var(--error); }
+footer { margin-top: 28px; color: var(--muted); font-size: 13px; }
+footer p { margin: 0 0 10px; }

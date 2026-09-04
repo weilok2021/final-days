@@ -1,0 +1,61 @@
+// Toolbar popup: the numbers, "Show the countdown" and a way to the options
+// page. The browser equivalent of the Windows tray menu.
+import { computeLife, countdownLine, formatInt } from './life.ts';
+import { loadSettings, resolveSettings } from './settings.ts';
+
+function el<T extends HTMLElement>(id: string): T {
+  const found = document.getElementById(id);
+  if (!found) throw new Error(`popup is missing #${id}`);
+  return found as T;
+}
+
+const ready = el<HTMLElement>('ready');
+const setup = el<HTMLElement>('setup');
+const rest = el<HTMLElement>('rest');
+const left = el<HTMLElement>('left');
+const line = el<HTMLElement>('line');
+const show = el<HTMLButtonElement>('show');
+const hint = el<HTMLElement>('hint');
+const options = el<HTMLButtonElement>('options');
+const setupText = el<HTMLElement>('setup-text');
+
+try {
+  const now = new Date();
+  const settings = await loadSettings();
+  const resolved = resolveSettings(settings, now);
+  if (resolved) {
+    const life = computeLife(resolved.birth, now);
+    rest.style.width = `${(1 - life.fraction) * 100}%`;
+    left.textContent = formatInt(life.left);
+    line.textContent = countdownLine(life);
+    ready.hidden = false;
+  } else {
+    rest.style.width = '100%';
+    setup.hidden = false;
+  }
+} catch (err) {
+  console.error('Final Days: popup could not read the settings', err);
+  rest.style.width = '100%';
+  setupText.textContent = 'Could not read the settings. Reload the extension and try again.';
+  setup.hidden = false;
+}
+
+show.addEventListener('click', () => void showCountdown());
+
+async function showCountdown(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const message: CountdownPromptMessage = { type: 'countdownPrompt', force: true };
+  try {
+    if (tab?.id === undefined) throw new Error('no tab');
+    await chrome.tabs.sendMessage(tab.id, message);
+    window.close();
+  } catch {
+    hint.textContent = 'This tab cannot show it. Switch to a web page, or reload this one, and try again.';
+    hint.hidden = false;
+  }
+}
+
+options.addEventListener('click', () => {
+  void chrome.runtime.openOptionsPage();
+  window.close();
+});
