@@ -38,7 +38,7 @@ chrome.commands?.onCommand.addListener((command) => {
 });
 chrome.runtime.onMessage.addListener((message: FdMessage, sender, sendResponse) => {
   if (message?.type === 'momentLost') {
-    void releaseMoment(message.token);
+    void releaseMoment(message.doc, message.token);
     return false;
   }
   if (message?.type !== 'hello') return false;
@@ -79,7 +79,7 @@ async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender
   const wantsMoment = sender.tab !== undefined && message.moment !== 'none' && (listed || force);
   let moment: MomentView | null = null;
   if (wantsMoment && (force || settings.moment)) {
-    const token = await claimMoment(today, force);
+    const token = await claimMoment(today, force, message.doc);
     if (token !== null) moment = momentView(life, token);
   }
   const done = wantsMoment || !settings.moment || !listed || (await shownOn(today));
@@ -121,29 +121,59 @@ async function readState(): Promise<MomentState> {
   };
 }
 
+// A page can die between asking and being answered (a redirect on arrival is
+// the common case). These two records, kept for the life of this worker
+// instance, let such an answer be undone or refused.
+
+/** The last daily claim: which document got it, its token, and when. */
+let lastClaim: { doc: string; token: string; at: number } | null = null;
+/** Documents that reported dying with a check unanswered, by the time they said so. */
+const abandoned = new Map<string, number>();
+const ABANDON_WINDOW_MS = 60_000;
+
 /**
  * Marks today as shown and returns the claim token, or null when today was
- * already taken. A forced show always wins and gets the empty token, so it
- * can never be released.
+ * already taken or the asking page is already gone. A forced show always wins
+ * and gets the empty token, so it can never be released.
  */
-function claimMoment(today: string, force: boolean): Promise<string | null> {
+function claimMoment(today: string, force: boolean, doc: string): Promise<string | null> {
   return serial(async () => {
+    forgetOldAbandons();
+    if (abandoned.delete(doc)) return null; // the page died before hearing this answer
     const state = await readState();
     if (!force && state.lastMoment === today) return null;
     const token = force ? '' : crypto.randomUUID();
     await chrome.storage.local.set({ lastMoment: today, momentToken: token });
+    lastClaim = force ? null : { doc, token, at: Date.now() };
     return token;
   });
 }
 
-/** The page holding the moment went away before anyone dismissed it: give the day back. */
-function releaseMoment(token: string): Promise<void> {
+/**
+ * The page went away before anyone saw the moment: give the day back. With
+ * the empty token the page died with its check unanswered; if the answer
+ * already claimed the day for it, undo that, otherwise make sure it cannot.
+ */
+function releaseMoment(doc: string, token: string): Promise<void> {
   return serial(async () => {
-    if (token === '') return;
+    forgetOldAbandons();
+    if (token === '') {
+      if (lastClaim?.doc !== doc) {
+        abandoned.set(doc, Date.now());
+        return;
+      }
+      token = lastClaim.token;
+    }
     const state = await readState();
     if (state.momentToken !== token) return; // a different claim owns the day now
     await chrome.storage.local.remove(['lastMoment', 'momentToken']);
+    if (lastClaim?.token === token) lastClaim = null;
   });
+}
+
+function forgetOldAbandons(): void {
+  const cutoff = Date.now() - ABANDON_WINDOW_MS;
+  for (const [doc, at] of abandoned) if (at < cutoff) abandoned.delete(doc);
 }
 
 async function shownOn(day: string): Promise<boolean> {
