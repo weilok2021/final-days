@@ -18,66 +18,15 @@ Final Days keeps that number in front of you:
 Lifespan is fixed at 80 years (29,220 days). The only thing you enter is your date
 of birth.
 
-It comes in two forms that follow one behaviour spec: a **Windows app** and a
-**browser extension** for Chrome and Edge.
+It is a **browser extension** for Chrome and Edge. A **Windows app** that
+follows the same behaviour spec is on its way (see below).
 
-## Windows app
+## Windows app (pending)
 
-The strip reserves its own space along the top of the primary display, so
-maximised windows start just below it and nothing ever covers it. The countdown
-takes the whole screen at the first unlock of the day.
-
-### Run it
-
-1. Download `final-days.exe` from the latest
-   [release](https://github.com/weilok2021/final-days/releases) and put it in a
-   folder of your choice. There is no installer.
-2. Run it. It creates `final-days.toml` next to itself and opens it. Set
-   `birth = "YYYY-MM-DD"`, save, click OK.
-3. It lives in the tray. Right-click the icon for the menu.
-
-To start it with Windows, use **Start with Windows** in the tray menu. That
-creates one shortcut in your Startup folder and nothing else; turning it off
-removes the shortcut.
-
-Everything Final Days writes stays next to the executable: `final-days.toml`
-(your settings), `final-days.state` (the date the countdown was last shown) and
-`final-days.log`. No registry, no other folders.
-
-### Config
-
-```toml
-birth = "1996-01-01"         # required, YYYY-MM-DD
-strip = true                 # the 4 px bar
-countdown = true             # the once-a-day reminder
-quiet_hours = "09:00-12:00"  # strip goes grey in these ranges, comma-separated
-```
-
-A config or state file written before 2026-09-04 still works: the old key
-names `moment` and `last_moment` are read when the new ones are absent.
-
-`Ctrl+Alt+F` toggles the strip for the current session.
-
-### Antivirus notes
-
-The download is an unsigned executable, and some security products flag unknown
-Go binaries on sight. If yours does, verify the download against `SHA256SUMS`
-from the same release, or build it yourself (below). On a managed work machine,
-assume the endpoint agent will block it and ask IT before running it; the
-browser extension below exists for exactly that case.
-
-### Build it yourself
-
-You need Go 1.25 or later. Any operating system works, the build cross-compiles.
-
-```sh
-./build.sh          # Linux, macOS, WSL
-.\build.ps1         # Windows PowerShell
-```
-
-The result is `dist/final-days.exe` plus its SHA-256. The only dependency is
-`golang.org/x/sys`; the icon, manifest and version info are embedded at build
-time by `go-winres`.
+A native Windows app in Go, with the strip as a reserved bar along the top of
+the screen and the countdown at the first unlock of the day, is on the
+`feature/windows-v1` branch and not merged yet. Its download, config file and
+antivirus notes arrive with it.
 
 ## Browser extension (Chrome and Edge)
 
@@ -144,16 +93,18 @@ request itself with a small fake page, so it never touches the network.
 - `SPEC.md` defines the behaviour: the numbers, colours, wording and triggers,
   plus what each port does where its platform cannot follow them exactly. Any
   port follows it, so a macOS version would match these two.
-- `windows/` is the Windows implementation in Go, calling Win32 directly with no
-  C toolchain. The strip is a registered AppBar; the countdown is a plain top-level
-  window; the tray icon is drawn at runtime as a miniature of the strip.
+- `windows/`, on the `feature/windows-v1` branch, is the Windows implementation
+  in Go, calling Win32 directly with no C toolchain. The strip is a registered
+  AppBar; the countdown is a plain top-level window; the tray icon is drawn at
+  runtime as a miniature of the strip.
 - `extension/` is the browser implementation in TypeScript (Manifest V3). A
   content script shows the countdown on the page; a background
   worker owns the settings, the numbers and the once-a-day rule; the options
   page and popup are plain HTML.
-- `design/` holds the interactive mockup the design was chosen from, and `notes/`
-  the research behind it: reference products, the habituation studies that
-  shaped the once-a-day rule, and the life tables.
+- `design/` holds the interactive mockups the design was chosen from, and
+  `notes/` the decision log of each feature. The research behind the design
+  (reference products, the habituation studies that shaped the once-a-day rule,
+  the life tables) is with the Windows branch for now.
 
 ## Licence
 
