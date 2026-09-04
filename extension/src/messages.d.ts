@@ -5,6 +5,8 @@
 /** Content script to background: "here is what I need right now". */
 interface HelloMessage {
   type: 'hello';
+  /** Random id of the sending document, so a claim can be tied to the page that asked for it. */
+  doc: string;
   /** The page's host name, matched against the moment's site list. */
   host: string;
   /**
@@ -28,6 +30,8 @@ interface MomentPromptMessage {
  */
 interface MomentLostMessage {
   type: 'momentLost';
+  doc: string;
+  /** The claim token, or "" when the page died before its answer arrived. */
   token: string;
 }
 

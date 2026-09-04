@@ -13,6 +13,8 @@
   const TIP_DELAY_MS = 350;
   /** A moment on screen this long counts as seen even if the page then goes away. */
   const SEEN_AFTER_MS = 3000;
+  /** Identifies this document to the worker; a redirect target is a new document with a new id. */
+  const DOC_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
   /** Inline !important declarations beat any stylesheet the page has for our host elements. */
   function pin(el: HTMLElement, props: Record<string, string>): void {
@@ -182,18 +184,24 @@
   }
 
   /**
-   * The page is going away (navigation, redirect, close) with the moment still
-   * up. If it had only just appeared, nobody can have read it: give the day
-   * back so the next page shows it. If it had been up for a few seconds, the
-   * user saw it and chose to move on, which counts as seen.
+   * The page is going away (navigation, redirect, close). If the moment is up
+   * and had only just appeared, nobody can have read it: give the day back so
+   * the next page shows it. If it had been up for a few seconds, the user saw
+   * it and chose to move on, which counts as seen. If a check is still
+   * unanswered, tell the worker so its answer cannot claim the day for a page
+   * that no longer exists.
    */
   function onPageHide(): void {
-    if (!moment) return;
-    const token = momentToken;
-    const seen = Date.now() - momentShownAt >= SEEN_AFTER_MS;
-    hideMoment();
-    if (token === '' || seen) return;
-    const lost: MomentLostMessage = { type: 'momentLost', token };
+    let token: string | null = null;
+    if (moment) {
+      const seen = Date.now() - momentShownAt >= SEEN_AFTER_MS;
+      if (momentToken !== '' && !seen) token = momentToken;
+      hideMoment();
+    } else if (checksInFlight > 0) {
+      token = '';
+    }
+    if (token === null) return;
+    const lost: MomentLostMessage = { type: 'momentLost', doc: DOC_ID, token };
     try {
       void chrome.runtime.sendMessage(lost).catch(() => undefined);
     } catch {
@@ -206,6 +214,8 @@
   /** Local date for which this tab already knows no moment is due; "" means ask. */
   let momentDoneFor = '';
   let changeTimer = 0;
+  /** Moment checks sent and not yet answered. */
+  let checksInFlight = 0;
 
   function localToday(): string {
     const d = new Date();
@@ -215,8 +225,9 @@
 
   async function refresh(mode: HelloMessage['moment']): Promise<void> {
     if (mode === 'check' && (momentDoneFor === localToday() || document.visibilityState !== 'visible')) mode = 'none';
-    const message: HelloMessage = { type: 'hello', moment: mode, host: location.hostname };
+    const message: HelloMessage = { type: 'hello', doc: DOC_ID, moment: mode, host: location.hostname };
     let reply: HelloReply | undefined;
+    if (mode !== 'none') checksInFlight++;
     try {
       reply = await chrome.runtime.sendMessage<HelloMessage, HelloReply | undefined>(message);
     } catch {
@@ -224,6 +235,8 @@
       // removed or reloaded, this script is orphaned: take the bar down.
       if (!chrome.runtime?.id) teardown();
       return;
+    } finally {
+      if (mode !== 'none') checksInFlight--;
     }
     if (!reply) return;
     renderStrip(reply.strip);
