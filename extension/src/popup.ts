@@ -17,19 +17,26 @@ const line = el<HTMLElement>('line');
 const show = el<HTMLButtonElement>('show');
 const hint = el<HTMLElement>('hint');
 const options = el<HTMLButtonElement>('options');
+const setupText = el<HTMLElement>('setup-text');
 
-const now = new Date();
-const settings = await loadSettings();
-const resolved = resolveSettings(settings, now);
-
-if (resolved) {
-  const life = computeLife(resolved.birth, now);
-  rest.style.width = `${(1 - life.fraction) * 100}%`;
-  left.textContent = formatInt(life.left);
-  line.textContent = countdownLine(life);
-  ready.hidden = false;
-} else {
+try {
+  const now = new Date();
+  const settings = await loadSettings();
+  const resolved = resolveSettings(settings, now);
+  if (resolved) {
+    const life = computeLife(resolved.birth, now);
+    rest.style.width = `${(1 - life.fraction) * 100}%`;
+    left.textContent = formatInt(life.left);
+    line.textContent = countdownLine(life);
+    ready.hidden = false;
+  } else {
+    rest.style.width = '100%';
+    setup.hidden = false;
+  }
+} catch (err) {
+  console.error('Final Days: popup could not read the settings', err);
   rest.style.width = '100%';
+  setupText.textContent = 'Could not read the settings. Reload the extension and try again.';
   setup.hidden = false;
 }
 

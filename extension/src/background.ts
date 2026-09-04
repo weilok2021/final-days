@@ -21,7 +21,6 @@ chrome.idle.setDetectionInterval(IDLE_SECONDS);
 const storageReady: Promise<void> = Promise.all([
   migrateRenamedKeys(chrome.storage.sync, RENAMED_SYNC_KEYS),
   migrateRenamedKeys(chrome.storage.local, RENAMED_LOCAL_KEYS),
-  chrome.storage.sync.remove([...REMOVED_SYNC_KEYS]),
 ]).then(
   () => undefined,
   (err: unknown) => console.warn('Final Days: storage migration failed', err),
@@ -44,6 +43,10 @@ chrome.runtime.onMessage.addListener((message: FdMessage, sender, sendResponse) 
     void releaseCountdown(message.doc, message.token);
     return false;
   }
+  if (message?.type === 'pageRestored') {
+    void forgetAbandoned(message.doc);
+    return false;
+  }
   if (message?.type !== 'hello') return false;
   hello(message, sender).then(sendResponse, (err: unknown) => {
     console.error('Final Days: hello failed', err);
@@ -54,9 +57,10 @@ chrome.runtime.onMessage.addListener((message: FdMessage, sender, sendResponse) 
 
 void refreshAction();
 
-/** Opens the options page until a date of birth has been set. */
+/** On install, update or reload: drops retired settings and opens the options page until a date of birth has been set. */
 async function firstRun(): Promise<void> {
   await storageReady;
+  await chrome.storage.sync.remove([...REMOVED_SYNC_KEYS]);
   const settings = await loadSettings();
   if (settings.birth === '') await chrome.runtime.openOptionsPage();
   await refreshAction();
@@ -93,8 +97,10 @@ async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender
       if (token !== null) countdown = countdownView(life, token);
     }
   }
-  const done = wantsCountdown || !settings.countdown || !listed || (!sitesMode && (await shownOn(today)));
-  return { countdown, countdownDoneFor: done ? today : '' };
+  // Only pages send hello, and an answered page needs no further check of its
+  // own today: the countdown was shown, or the day is claimed elsewhere, or the
+  // countdown is off, or the site is not listed. A worker prompt still gets through.
+  return { countdown, countdownDoneFor: today };
 }
 
 function countdownView(life: Life, token: string): CountdownView {
@@ -227,6 +233,16 @@ function releaseCountdown(doc: string, token: string): Promise<void> {
       book.lastClaim = null;
       await writeBook(book);
     }
+  });
+}
+
+/** The page came back from the back/forward cache: it is not dead after all. */
+function forgetAbandoned(doc: string): Promise<void> {
+  return serial(async () => {
+    const book = await readBook();
+    if (!(doc in book.abandoned)) return;
+    delete book.abandoned[doc];
+    await writeBook(book);
   });
 }
 

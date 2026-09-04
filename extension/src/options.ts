@@ -67,12 +67,18 @@ async function save(): Promise<void> {
     say(err instanceof Error ? err.message : String(err), true);
     return;
   }
-  await saveSettings({
-    birth: birth.value.trim(),
-    countdown: countdown.checked,
-    countdownMode: modeSites.checked ? 'sites' : 'daily',
-    countdownSites: sites.value.trim(),
-  });
+  try {
+    await saveSettings({
+      birth: birth.value.trim(),
+      countdown: countdown.checked,
+      countdownMode: modeSites.checked ? 'sites' : 'daily',
+      countdownSites: sites.value.trim(),
+    });
+  } catch (err) {
+    // Storage refused it: over the sync quota (a very long site list) or sync unavailable.
+    say(`Could not save: ${err instanceof Error ? err.message : String(err)}`, true);
+    return;
+  }
   renderPreview();
   say('Saved.', false);
 }
