@@ -292,6 +292,42 @@ test('in the sites mode the countdown appears on every load of a listed site and
   await hidden.close();
 });
 
+/** A tab switch as the content script sees it: the page becomes visible and its window gains focus. */
+async function comeBack(p: Page): Promise<void> {
+  await p.bringToFront();
+  await p.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await sleep(300);
+}
+
+test('a settings change does not repeat a countdown a page has already shown', SLOW, async () => {
+  // Sites mode: once per page load, whatever is saved afterwards.
+  await page.goto('https://www.youtube.com/');
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.mouse.click(640, 360);
+  await countdown(page).waitFor({ state: 'detached', timeout: 5_000 });
+  await saveOptions({ sites: 'youtube.com, facebook.com, reddit.com' });
+  await comeBack(page);
+  await expectNoCountdown(page, 'sites mode, after a settings change');
+  await page.reload();
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.mouse.click(640, 360);
+
+  // Daily mode: the page that showed today's countdown asks no more, so leaving
+  // it after a settings change cannot give the day back.
+  await saveOptions({ mode: 'daily' });
+  await resetDay();
+  await page.goto('https://example.com/');
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.mouse.click(640, 360);
+  await countdown(page).waitFor({ state: 'detached', timeout: 5_000 });
+  await saveOptions({ countdown: true });
+  await comeBack(page);
+  await expectNoCountdown(page, 'daily mode, after a settings change');
+  await page.goto('https://example.org/');
+  await expectNoCountdown(page, 'the next page, after leaving the page that showed it');
+  assert.equal((await state())['lastCountdown'], localDateString(new Date()), 'the day must stay claimed');
+});
+
 test('a countdown left on screen for three seconds counts as seen', SLOW, async () => {
   await saveOptions({ mode: 'daily' });
   await resetDay();
