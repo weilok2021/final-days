@@ -101,7 +101,12 @@ thing, and this section is the record of those differences.
   a page cannot reserve screen space the way the desktop can. Quiet hours and
   the hover label went with it. The bar lives in the countdown instead.
 - **Countdown.** Covers the current tab, not the whole screen; content and
-  dismissal follow section 3. "The first time the user comes back" is
+  dismissal follow section 3, except that the bar is under the number (6 px
+  tall, 60 % of the viewport wide, the gradient of section 2 with the
+  remainder `#27272a`) instead of the 3 px strip along the top edge, so that
+  it is looked at whenever the number is. It is the only place the extension
+  draws the bar (chosen 2026-09-04 from `design/countdown/bar-directions.html`).
+  "The first time the user comes back" is
   whichever of these happens first on a day when it has not been shown:
   1. a page loads in a visible tab;
   2. a tab becomes visible or the browser window regains focus;
