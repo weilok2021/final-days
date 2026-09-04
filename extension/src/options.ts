@@ -15,6 +15,8 @@ const strip = el<HTMLInputElement>('strip');
 const moment = el<HTMLInputElement>('moment');
 const quiet = el<HTMLInputElement>('quiet');
 const sites = el<HTMLTextAreaElement>('sites');
+const modeDaily = el<HTMLInputElement>('mode-daily');
+const modeSites = el<HTMLInputElement>('mode-sites');
 const status = el<HTMLElement>('status');
 const preview = el<HTMLElement>('preview');
 const rest = el<HTMLElement>('rest');
@@ -46,6 +48,8 @@ async function load(): Promise<void> {
   moment.checked = settings.moment;
   quiet.value = settings.quietHours;
   sites.value = settings.momentSites;
+  modeDaily.checked = settings.momentMode === 'daily';
+  modeSites.checked = settings.momentMode === 'sites';
   renderPreview();
   if (settings.birth === '') {
     say('Set your date of birth to start.', false);
@@ -62,7 +66,8 @@ async function save(): Promise<void> {
   try {
     parseBirth(birth.value, new Date());
     parseHourRanges(quiet.value);
-    parseSiteList(sites.value);
+    const list = parseSiteList(sites.value);
+    if (modeSites.checked && list.length === 0) throw new Error('Enter at least one site for the moment to appear on.');
   } catch (err) {
     say(err instanceof Error ? err.message : String(err), true);
     return;
@@ -72,6 +77,7 @@ async function save(): Promise<void> {
     strip: strip.checked,
     moment: moment.checked,
     quietHours: quiet.value.trim(),
+    momentMode: modeSites.checked ? 'sites' : 'daily',
     momentSites: sites.value.trim(),
   });
   renderPreview();
@@ -79,6 +85,6 @@ async function save(): Promise<void> {
 }
 
 birth.addEventListener('input', renderPreview);
-for (const input of [birth, strip, moment, quiet, sites]) input.addEventListener('input', () => say('', false));
+for (const input of [birth, strip, moment, quiet, sites, modeDaily, modeSites]) input.addEventListener('input', () => say('', false));
 
 void load();

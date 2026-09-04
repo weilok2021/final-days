@@ -189,12 +189,8 @@ export function parseSiteList(text: string): string[] {
   return out;
 }
 
-/**
- * Whether a page host is one of the listed sites or a subdomain of one.
- * A null list means every site is listed.
- */
-export function siteListed(sites: string[] | null, host: string): boolean {
-  if (sites === null) return true;
+/** Whether a page host is one of the listed sites or a subdomain of one. */
+export function siteListed(sites: string[], host: string): boolean {
   const h = host.toLowerCase();
   return sites.some((site) => h === site || h.endsWith(`.${site}`));
 }

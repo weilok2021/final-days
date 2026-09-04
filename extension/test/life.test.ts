@@ -144,6 +144,5 @@ test('siteListed matches the site and its subdomains', () => {
   assert.equal(siteListed(sites, 'notyoutube.com'), false);
   assert.equal(siteListed(sites, 'github.com'), false);
   assert.equal(siteListed(sites, ''), false);
-  assert.equal(siteListed(null, 'github.com'), true);
   assert.equal(siteListed([], 'github.com'), false);
 });

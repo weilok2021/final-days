@@ -74,8 +74,16 @@ function assertColour(actual: [number, number, number], hex: string, what: strin
 const state = () => options.evaluate(() => chrome.storage.local.get(null));
 const resetDay = () => options.evaluate(() => chrome.storage.local.clear());
 
-async function saveOptions(values: { birth?: string; strip?: boolean; moment?: boolean; quiet?: string; sites?: string }): Promise<void> {
+async function saveOptions(values: {
+  birth?: string;
+  strip?: boolean;
+  moment?: boolean;
+  quiet?: string;
+  mode?: 'daily' | 'sites';
+  sites?: string;
+}): Promise<void> {
   if (values.birth !== undefined) await options.fill('#birth', values.birth);
+  if (values.mode !== undefined) await options.check(values.mode === 'sites' ? '#mode-sites' : '#mode-daily');
   if (values.strip !== undefined) await options.setChecked('#strip', values.strip);
   if (values.moment !== undefined) await options.setChecked('#moment', values.moment);
   if (values.quiet !== undefined) await options.fill('#quiet', values.quiet);
@@ -119,8 +127,9 @@ after(async () => {
 });
 
 test('the options page opens on install and saves the date of birth', SLOW, async () => {
-  assert.equal(await options.locator('#status').textContent(), 'Set your date of birth to start.');
+  await options.locator('#status').filter({ hasText: 'Set your date of birth to start.' }).waitFor({ timeout: 10_000 });
   assert.equal(await options.locator('#preview').isHidden(), true);
+  assert.equal(await options.locator('#mode-daily').isChecked(), true);
   await saveOptions({ birth: BIRTH });
   const now = new Date();
   const life = computeLife(parseBirth(BIRTH, now), now);
@@ -137,6 +146,10 @@ test('the options page refuses bad input without saving it', SLOW, async () => {
   await options.click('button[type=submit]');
   assert.match((await options.locator('#status').textContent()) ?? '', /not a site name/);
   await options.fill('#sites', '');
+  await options.check('#mode-sites');
+  await options.click('button[type=submit]');
+  assert.match((await options.locator('#status').textContent()) ?? '', /at least one site/);
+  await options.check('#mode-daily');
   const settings = await options.evaluate(() => chrome.storage.sync.get(null));
   assert.equal(settings['quietHours'], '');
   assert.equal(settings['momentSites'] ?? '', '');
@@ -236,9 +249,8 @@ test('switching the strip off removes it from open pages', SLOW, async () => {
   await strip(page).waitFor({ state: 'attached', timeout: 5_000 });
 });
 
-test('with a site list the moment appears only on listed sites', SLOW, async () => {
-  await saveOptions({ sites: 'youtube.com, facebook.com' });
-  await resetDay();
+test('in the sites mode the moment appears on every load of a listed site and nowhere else', SLOW, async () => {
+  await saveOptions({ mode: 'sites', sites: 'youtube.com, facebook.com' });
   await page.goto('https://github.com/');
   await strip(page).waitFor({ state: 'attached', timeout: 10_000 });
   await expectNoMoment(page, 'unlisted site');
@@ -246,11 +258,25 @@ test('with a site list the moment appears only on listed sites', SLOW, async () 
   await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
   await shot(page, '06-moment-on-listed-site');
   await page.mouse.click(640, 360);
+  await moment(page).waitFor({ state: 'detached', timeout: 5_000 });
+  await page.bringToFront();
+  await sleep(600);
+  assert.equal(await moment(page).count(), 0, 'the same page must not show it again on focus');
+  await page.reload();
+  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.mouse.click(640, 360);
   await page.goto('https://www.facebook.com/');
-  await expectNoMoment(page, 'second listed site after a click');
+  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.mouse.click(640, 360);
+  const s = await state();
+  assert.equal(s['lastMoment'], undefined, 'the sites mode must not claim the day');
+  const hidden = await context.newPage();
+  await hidden.goto('https://www.youtube.com/');
+  await hidden.close();
 });
 
 test('a moment left on screen for three seconds counts as seen', SLOW, async () => {
+  await saveOptions({ mode: 'daily' });
   await resetDay();
   await page.goto('https://www.youtube.com/');
   await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
@@ -269,7 +295,6 @@ test('a moment that flashes for under a second is released to the next page', SL
 });
 
 test('a page that redirects on arrival does not eat the day', SLOW, async () => {
-  await saveOptions({ sites: '' });
   await resetDay();
   await page.goto('https://old.example/');
   await page.waitForURL('https://new.example/', { timeout: 10_000 });

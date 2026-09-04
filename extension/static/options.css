@@ -46,6 +46,10 @@ form { background: var(--card); border: 1px solid var(--line); border-radius: 12
 .field input:focus, .field textarea:focus, .actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 small { display: block; color: var(--muted); font-size: 13px; margin-top: 6px; line-height: 1.45; }
 .check { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 22px; cursor: pointer; }
+fieldset.sub { border: 0; padding: 0 0 0 28px; margin: -6px 0 22px; }
+fieldset.sub legend { font-weight: 600; margin-bottom: 10px; padding: 0; }
+fieldset.sub .check { margin-bottom: 14px; }
+fieldset.sub textarea { margin-top: 2px; }
 .check input { margin: 5px 0 0; width: 16px; height: 16px; flex: none; }
 .check > span { font-weight: 600; }
 .check small { font-weight: 400; margin-top: 2px; }

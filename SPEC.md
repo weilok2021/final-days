@@ -111,12 +111,14 @@ thing, and this section is the record of those differences.
   navigation) within 3 seconds of the moment appearing, nobody can have read
   it: the day is released and the next page shows it. After 3 seconds on
   screen it counts as seen, whether dismissed or left behind.
-- **Sites.** An optional list of sites (host names, subdomains included)
-  restricts the moment: with a list, "the first time the user comes back"
-  becomes the first visit of the day to a listed site, and the moment never
-  appears anywhere else, so it stays off work pages and shared screens. A
-  forced show from the popup or the strip works on any page. Empty means
-  every site, which is the behaviour of section 3.
+- **Two modes for the moment**, chosen on the options page. *Once a day* is
+  section 3 as described above, and the default. *Every time you open one of
+  these sites* takes a list of host names (subdomains included): the moment
+  then appears each time a listed site loads, once per page load, and never
+  anywhere else, so it stays off work pages and shared screens. In that mode
+  there is no daily claim, no release and no idle trigger; a page loads, the
+  moment shows. A forced show from the popup or the strip works on any page
+  in either mode.
 - **Settings.** The four values of section 6 plus the site list, entered on
   an options page instead of a file, kept in the browser's synced extension
   storage. The last-shown date lives in local extension storage.

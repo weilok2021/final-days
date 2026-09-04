@@ -72,17 +72,27 @@ async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender
     ? { fraction: life.fraction, quiet: inQuietHours(resolved.ranges, now), tip: tipText(life) }
     : null;
 
-  // Only a page can show the moment, so only messages from a tab may claim it,
-  // and only a listed site may claim the day. A forced show works anywhere.
-  const listed = siteListed(resolved.sites, message.host);
+  // Only a page can show the moment, so only messages from a tab count. In the
+  // sites mode every load of a listed site shows it and nothing is claimed; in
+  // the daily mode the first page to ask claims the day. A forced show works
+  // anywhere in either mode.
+  const sitesMode = settings.momentMode === 'sites';
+  const listed = sitesMode ? siteListed(resolved.sites, message.host) : true;
   const force = message.moment === 'force';
   const wantsMoment = sender.tab !== undefined && message.moment !== 'none' && (listed || force);
   let moment: MomentView | null = null;
   if (wantsMoment && (force || settings.moment)) {
-    const token = await claimMoment(today, force, message.doc);
-    if (token !== null) moment = momentView(life, token);
+    if (force) {
+      await claimMoment(today, true, message.doc);
+      moment = momentView(life, '');
+    } else if (sitesMode) {
+      moment = momentView(life, '');
+    } else {
+      const token = await claimMoment(today, false, message.doc);
+      if (token !== null) moment = momentView(life, token);
+    }
   }
-  const done = wantsMoment || !settings.moment || !listed || (await shownOn(today));
+  const done = wantsMoment || !settings.moment || !listed || (!sitesMode && (await shownOn(today)));
   return { strip, moment, momentDoneFor: done ? today : '', nextChangeAt };
 }
 
@@ -187,7 +197,7 @@ async function shownOn(day: string): Promise<boolean> {
  */
 async function onReturn(): Promise<void> {
   const settings = await loadSettings();
-  if (!settings.moment || settings.birth === '') return;
+  if (!settings.moment || settings.birth === '' || settings.momentMode === 'sites') return;
   if (await shownOn(localDateString(new Date()))) return;
   await promptActiveTab(false);
 }
