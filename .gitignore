@@ -27,3 +27,6 @@ node_modules/
 
 # Ephemeral QA scratchpad, never merged
 **/QA-CHECKLIST.md
+
+# Local Claude Code skills and settings, never merged
+.claude/
