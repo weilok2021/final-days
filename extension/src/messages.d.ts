@@ -34,7 +34,13 @@ interface CountdownLostMessage {
   token: string;
 }
 
-type FdMessage = HelloMessage | CountdownPromptMessage | CountdownLostMessage;
+/** Content script to background: the page came back from the back/forward cache after reporting itself gone. */
+interface PageRestoredMessage {
+  type: 'pageRestored';
+  doc: string;
+}
+
+type FdMessage = HelloMessage | CountdownPromptMessage | CountdownLostMessage | PageRestoredMessage;
 
 interface CountdownView {
   /** The claim token for the daily countdown; "" for a forced show, which is never released. */

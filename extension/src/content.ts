@@ -91,6 +91,20 @@
     docRoot.appendChild(host);
     countdown = host;
     host.focus({ preventScroll: true });
+    if (!document.body) {
+      // The page is still being parsed: <body> will land after us, and a page
+      // element at the same z-index would then paint above ours. Move to the
+      // end once the document is there.
+      document.addEventListener(
+        'DOMContentLoaded',
+        () => {
+          if (countdown !== host) return;
+          docRoot.appendChild(host);
+          host.focus({ preventScroll: true });
+        },
+        { once: true },
+      );
+    }
   }
 
   function onCountdownKey(e: KeyboardEvent): void {
@@ -190,6 +204,18 @@
   });
   window.addEventListener('focus', () => void refresh('check'));
   window.addEventListener('pagehide', onPageHide);
+  window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    // Back from the back/forward cache: pagehide ran, but the page lives on.
+    const restored: PageRestoredMessage = { type: 'pageRestored', doc: DOC_ID };
+    try {
+      void chrome.runtime.sendMessage(restored).catch(() => undefined);
+    } catch {
+      return; // the extension is gone
+    }
+    countdownDoneFor = '';
+    void refresh('check');
+  });
   chrome.storage.onChanged.addListener((changes, area) => {
     // The day was claimed or released somewhere, or a setting changed: ask again on the next return.
     if (area === 'sync' || (area === 'local' && 'lastCountdown' in changes)) countdownDoneFor = '';
