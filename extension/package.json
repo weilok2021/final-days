@@ -8,11 +8,13 @@
     "build": "tsc -p tsconfig.json && node scripts/copy-static.mjs",
     "check": "tsc -p tsconfig.check.json",
     "test": "node --test \"test/**/*.test.ts\"",
-    "icons": "node scripts/mkicon.mjs"
+    "icons": "node scripts/mkicon.mjs",
+    "e2e": "node --test \"e2e/**/*.test.ts\""
   },
   "devDependencies": {
     "@types/chrome": "^0.2.8",
     "@types/node": "^26.4.1",
+    "playwright": "^1.62.1",
     "typescript": "^7.0.2"
   }
 }

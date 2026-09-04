@@ -127,9 +127,14 @@ npm ci
 npm run build       # writes extension/dist, the folder to load
 npm test            # unit tests for the shared logic
 npm run check       # type check
+npm run e2e         # drives the built extension in a headless Chromium
 ```
 
-The only tooling is the TypeScript compiler; there is no bundler.
+The build needs only the TypeScript compiler; there is no bundler. The
+end-to-end suite uses Playwright: run `npx playwright install chromium` once
+(on Linux add its system libraries with `npx playwright install-deps chromium`,
+or just `libnss3`, `libnspr4` and `libasound2`). It answers every website
+request itself with a small fake page, so it never touches the network.
 
 ## How it is built
 

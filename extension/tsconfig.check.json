@@ -5,5 +5,5 @@
     "rootDir": ".",
     "types": ["chrome", "node"]
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "e2e"]
 }
