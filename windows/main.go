@@ -73,14 +73,14 @@ func main() {
 			log.Println("strip:", err)
 		}
 	}
-	if _, err := newMoment(app); err != nil {
-		log.Println("moment:", err)
+	if _, err := newCountdown(app); err != nil {
+		log.Println("countdown:", err)
 	}
 	pRegisterHotKey.Call(app.hwnd, hotkeyStrip, modControl|modAlt|modNoRepeat, 'F')
 	pWTSRegisterSessionNotification.Call(app.hwnd, notifyForThisSession)
 	pSetTimer.Call(app.hwnd, timerTick, 30_000, 0)
-	if cfg.Moment && !app.state.ShownOn(time.Now()) {
-		pSetTimer.Call(app.hwnd, timerFirstMoment, 1200, 0)
+	if cfg.Countdown && !app.state.ShownOn(time.Now()) {
+		pSetTimer.Call(app.hwnd, timerFirstCountdown, 1200, 0)
 	}
 
 	var m msg

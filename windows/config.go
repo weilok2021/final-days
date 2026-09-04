@@ -12,7 +12,7 @@ import (
 type Config struct {
 	Birth      time.Time
 	Strip      bool
-	Moment     bool
+	Countdown  bool
 	QuietHours []HourRange
 }
 
@@ -36,7 +36,7 @@ const DefaultConfigText = `# Final Days
 
 birth = ""                  # your date of birth, YYYY-MM-DD, for example "1996-01-01"
 strip = true                # the 4 px life bar along the top of the screen
-moment = true               # the once-a-day full-screen reminder
+countdown = true            # the once-a-day full-screen reminder
 quiet_hours = ""            # strip turns grey in these ranges, e.g. "09:00-12:00, 14:00-17:00"
 `
 
@@ -45,7 +45,7 @@ var ErrNoBirth = errors.New("birth is not set")
 
 // ParseConfig reads the flat TOML subset described in SPEC.md.
 func ParseConfig(text string) (Config, error) {
-	cfg := Config{Strip: true, Moment: true}
+	cfg := Config{Strip: true, Countdown: true}
 	kv, err := parseFlat(text)
 	if err != nil {
 		return cfg, err
@@ -55,8 +55,12 @@ func ParseConfig(text string) (Config, error) {
 			return cfg, err
 		}
 	}
-	if v, ok := kv["moment"]; ok {
-		if cfg.Moment, err = parseBool("moment", v); err != nil {
+	if v, ok := kv["countdown"]; ok {
+		if cfg.Countdown, err = parseBool("countdown", v); err != nil {
+			return cfg, err
+		}
+	} else if v, ok := kv["moment"]; ok { // the key's name before 2026-09-04
+		if cfg.Countdown, err = parseBool("moment", v); err != nil {
 			return cfg, err
 		}
 	}
@@ -185,7 +189,7 @@ func stripComment(line string) string {
 
 // State is the small runtime record kept next to the executable.
 type State struct {
-	LastMoment string // YYYY-MM-DD of the last shown moment, "" if never
+	LastCountdown string // YYYY-MM-DD of the last shown countdown, "" if never
 }
 
 // ParseState reads final-days.state; a missing or broken file is an empty state.
@@ -194,15 +198,19 @@ func ParseState(text string) State {
 	if err != nil {
 		return State{}
 	}
-	return State{LastMoment: strings.TrimSpace(kv["last_moment"])}
+	last, ok := kv["last_countdown"]
+	if !ok {
+		last = kv["last_moment"] // the key's name before 2026-09-04
+	}
+	return State{LastCountdown: strings.TrimSpace(last)}
 }
 
 // Text renders the state file.
 func (s State) Text() string {
-	return "last_moment = \"" + s.LastMoment + "\"\n"
+	return "last_countdown = \"" + s.LastCountdown + "\"\n"
 }
 
-// ShownOn reports whether the moment was already shown on the given day.
+// ShownOn reports whether the countdown was already shown on the given day.
 func (s State) ShownOn(day time.Time) bool {
-	return s.LastMoment == day.Format("2006-01-02")
+	return s.LastCountdown == day.Format("2006-01-02")
 }

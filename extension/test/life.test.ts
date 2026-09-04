@@ -6,7 +6,7 @@ import {
   formatInt,
   inQuietHours,
   localDateString,
-  momentLine,
+  countdownLine,
   nextChange,
   parseBirth,
   parseHourRanges,
@@ -46,7 +46,7 @@ test('computeLife matches the spec example', () => {
   assert.equal(life.lived, 11203);
   assert.equal(life.left, 18017);
   assert.equal(tipText(life), 'Day 11,203 of 29,220 · 18,017 days left');
-  assert.equal(momentLine(life), 'days left · day 11,203 of 29,220');
+  assert.equal(countdownLine(life), 'days left · day 11,203 of 29,220');
 });
 
 test('formatInt groups thousands', () => {

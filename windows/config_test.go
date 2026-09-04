@@ -17,7 +17,7 @@ func TestParseConfig(t *testing.T) {
 	text := `# comment
 birth = "1996-01-01"   # trailing comment
 strip = false
-moment = true
+countdown = true
 quiet_hours = "09:00-12:00, 22:00-06:00"
 `
 	cfg, err := ParseConfig(text)
@@ -27,8 +27,8 @@ quiet_hours = "09:00-12:00, 22:00-06:00"
 	if cfg.Birth.Year() != 1996 || cfg.Birth.Month() != 1 || cfg.Birth.Day() != 1 {
 		t.Errorf("birth = %v", cfg.Birth)
 	}
-	if cfg.Strip || !cfg.Moment {
-		t.Errorf("strip=%v moment=%v", cfg.Strip, cfg.Moment)
+	if cfg.Strip || !cfg.Countdown {
+		t.Errorf("strip=%v countdown=%v", cfg.Strip, cfg.Countdown)
 	}
 	if len(cfg.QuietHours) != 2 {
 		t.Fatalf("quiet hours = %v", cfg.QuietHours)
@@ -39,6 +39,23 @@ quiet_hours = "09:00-12:00, 22:00-06:00"
 	}
 	if !cfg.InQuietHours(at(23, 0)) || !cfg.InQuietHours(at(3, 0)) || cfg.InQuietHours(at(6, 0)) {
 		t.Error("overnight range wrong")
+	}
+}
+
+func TestParseConfigReadsTheOldCountdownKey(t *testing.T) {
+	cfg, err := ParseConfig("birth = \"1996-01-01\"\nmoment = false\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Countdown {
+		t.Error("moment = false should be read as countdown = false")
+	}
+	cfg, err = ParseConfig("birth = \"1996-01-01\"\nmoment = false\ncountdown = true\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.Countdown {
+		t.Error("countdown should win over the old moment key")
 	}
 }
 
@@ -59,7 +76,7 @@ func TestParseConfigErrors(t *testing.T) {
 }
 
 func TestState(t *testing.T) {
-	s := ParseState("last_moment = \"2026-09-03\"\n")
+	s := ParseState("last_countdown = \"2026-09-03\"\n")
 	day := time.Date(2026, 9, 3, 15, 0, 0, 0, time.Local)
 	if !s.ShownOn(day) || s.ShownOn(day.AddDate(0, 0, 1)) {
 		t.Error("ShownOn wrong")
@@ -67,7 +84,10 @@ func TestState(t *testing.T) {
 	if ParseState("").ShownOn(day) {
 		t.Error("empty state should not be shown")
 	}
-	if got := (State{LastMoment: "2026-09-04"}).Text(); got != "last_moment = \"2026-09-04\"\n" {
+	if !ParseState("last_moment = \"2026-09-03\"\n").ShownOn(day) {
+		t.Error("the old last_moment key should still be read")
+	}
+	if got := (State{LastCountdown: "2026-09-04"}).Text(); got != "last_countdown = \"2026-09-04\"\n" {
 		t.Errorf("Text = %q", got)
 	}
 }

@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	timerTick        = 1
-	timerFirstMoment = 2
-	hotkeyStrip      = 1
+	timerTick           = 1
+	timerFirstCountdown = 2
+	hotkeyStrip         = 1
 )
 
 // App owns the hidden message window and the three visible pieces.
@@ -23,9 +23,9 @@ type App struct {
 	life  Life
 	hwnd  uintptr
 
-	strip  *strip
-	moment *moment
-	tray   *tray
+	strip     *strip
+	countdown *countdown
+	tray      *tray
 
 	today          string
 	lastQuiet      bool
@@ -41,23 +41,23 @@ func (a *App) recompute() {
 	a.today = now.Format("2006-01-02")
 }
 
-func (a *App) markMomentShown(t time.Time) {
-	a.state.LastMoment = t.Format("2006-01-02")
+func (a *App) markCountdownShown(t time.Time) {
+	a.state.LastCountdown = t.Format("2006-01-02")
 	if err := os.WriteFile(filepath.Join(a.dir, stateFile), []byte(a.state.Text()), 0o644); err != nil {
 		log.Println("state:", err)
 	}
 }
 
-// showMoment shows the daily reminder. force bypasses the once-a-day rule.
-func (a *App) showMoment(force bool) {
-	if a.moment == nil {
+// showCountdown shows the daily reminder. force bypasses the once-a-day rule.
+func (a *App) showCountdown(force bool) {
+	if a.countdown == nil {
 		return
 	}
-	if !force && (!a.cfg.Moment || a.state.ShownOn(time.Now())) {
+	if !force && (!a.cfg.Countdown || a.state.ShownOn(time.Now())) {
 		return
 	}
 	a.recompute()
-	a.moment.show()
+	a.countdown.show()
 }
 
 // tick runs every 30 s: day rollover, quiet-hour edges, return-from-idle.
@@ -84,7 +84,7 @@ func (a *App) tick() {
 		a.wasIdle = true
 	case a.wasIdle && idle < 30*1000:
 		a.wasIdle = false
-		a.showMoment(false)
+		a.showCountdown(false)
 	}
 }
 
@@ -107,8 +107,8 @@ func (a *App) openConfig() {
 
 func (a *App) command(id int) {
 	switch id {
-	case menuMoment:
-		a.showMoment(true)
+	case menuCountdown:
+		a.showCountdown(true)
 	case menuStrip:
 		a.toggleStrip()
 	case menuStartup:
@@ -136,15 +136,15 @@ func (a *App) proc(hwnd, m, wp, lp uintptr) uintptr {
 		switch wp {
 		case timerTick:
 			a.tick()
-		case timerFirstMoment:
-			pKillTimer.Call(hwnd, timerFirstMoment)
-			a.showMoment(false)
+		case timerFirstCountdown:
+			pKillTimer.Call(hwnd, timerFirstCountdown)
+			a.showCountdown(false)
 		}
 		return 0
 	case wmWTSSessionChange:
 		if wp == wtsSessionUnlock {
 			// Give the desktop a moment to come back before covering it.
-			pSetTimer.Call(hwnd, timerFirstMoment, 1500, 0)
+			pSetTimer.Call(hwnd, timerFirstCountdown, 1500, 0)
 		}
 		return 0
 	case wmDestroy:

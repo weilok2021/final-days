@@ -64,7 +64,7 @@ func FormatInt(n int) string {
 	return string(out)
 }
 
-// Question is the one sentence the moment asks. Ports share this wording.
+// Question is the one sentence the countdown asks. Ports share this wording.
 func Question(left int) string {
 	return "Is today worth one of your remaining " + FormatInt(left) + " days?"
 }

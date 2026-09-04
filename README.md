@@ -12,7 +12,7 @@ Final Days keeps that number in front of you:
 - **The strip.** A 4-pixel bar along the top edge of the screen, filled from the
   left as life passes, green through yellow to red. Hover it for the numbers. It
   never moves, never blinks, never asks for anything.
-- **The moment.** Once a day, the first time you come back, the screen goes dark
+- **The countdown.** Once a day, the first time you come back, the screen goes dark
   and shows how many days you have left. One click and it is gone.
 
 Lifespan is fixed at 80 years (29,220 days). The only thing you enter is your date
@@ -24,7 +24,7 @@ It comes in two forms that follow one behaviour spec: a **Windows app** and a
 ## Windows app
 
 The strip reserves its own space along the top of the primary display, so
-maximised windows start just below it and nothing ever covers it. The moment
+maximised windows start just below it and nothing ever covers it. The countdown
 takes the whole screen at the first unlock of the day.
 
 ### Run it
@@ -41,7 +41,7 @@ creates one shortcut in your Startup folder and nothing else; turning it off
 removes the shortcut.
 
 Everything Final Days writes stays next to the executable: `final-days.toml`
-(your settings), `final-days.state` (the date the moment was last shown) and
+(your settings), `final-days.state` (the date the countdown was last shown) and
 `final-days.log`. No registry, no other folders.
 
 ### Config
@@ -49,9 +49,12 @@ Everything Final Days writes stays next to the executable: `final-days.toml`
 ```toml
 birth = "1996-01-01"         # required, YYYY-MM-DD
 strip = true                 # the 4 px bar
-moment = true                # the once-a-day reminder
+countdown = true             # the once-a-day reminder
 quiet_hours = "09:00-12:00"  # strip goes grey in these ranges, comma-separated
 ```
+
+A config or state file written before 2026-09-04 still works: the old key
+names `moment` and `last_moment` are read when the new ones are absent.
 
 `Ctrl+Alt+F` toggles the strip for the current session.
 
@@ -84,7 +87,7 @@ the same as on Windows; three things are necessarily different:
 
 - The strip is drawn over the top 4 px of every web page. A web page cannot
   reserve screen space, so a page's own top edge sits under it.
-- The moment covers the current tab, not the whole screen. "The first time you
+- The countdown covers the current tab, not the whole screen. "The first time you
   come back" is the first page you look at each day, or the first time the
   browser sees you return after a lock or five idle minutes. Or switch it to
   a list of sites (YouTube, the social sites): it then shows up every time you
@@ -112,9 +115,9 @@ The extension is not on a store yet, so it loads "unpacked" from a folder:
 3. The options page opens. Enter your date of birth and save.
 
 Pin the icon from the toolbar's extensions menu: it shows the bar in
-miniature, and its popup has the numbers, **Show today's moment** and the bar
+miniature, and its popup has the numbers, **Show the countdown** and the bar
 switch. `Alt+Shift+F` also toggles the bar (changeable at
-`chrome://extensions/shortcuts`). Quiet hours and the moment's mode are on
+`chrome://extensions/shortcuts`). Quiet hours and the countdown's mode are on
 the options page.
 
 ### Build it yourself
@@ -142,10 +145,10 @@ request itself with a small fake page, so it never touches the network.
   plus what each port does where its platform cannot follow them exactly. Any
   port follows it, so a macOS version would match these two.
 - `windows/` is the Windows implementation in Go, calling Win32 directly with no
-  C toolchain. The strip is a registered AppBar; the moment is a plain top-level
+  C toolchain. The strip is a registered AppBar; the countdown is a plain top-level
   window; the tray icon is drawn at runtime as a miniature of the strip.
 - `extension/` is the browser implementation in TypeScript (Manifest V3). A
-  content script draws the strip and the moment on each page; a background
+  content script draws the strip and the countdown on each page; a background
   worker owns the settings, the numbers and the once-a-day rule; the options
   page and popup are plain HTML.
 - `design/` holds the interactive mockup the design was chosen from, and `notes/`

@@ -7,35 +7,35 @@ interface HelloMessage {
   type: 'hello';
   /** Random id of the sending document, so a claim can be tied to the page that asked for it. */
   doc: string;
-  /** The page's host name, matched against the moment's site list. */
+  /** The page's host name, matched against the countdown's site list. */
   host: string;
   /**
    * none: just the strip (page load in a background tab, a timer tick).
-   * check: also show today's moment if it has not been shown yet.
-   * force: show the moment now regardless (strip click, popup button).
+   * check: also show the countdown if it has not been shown yet.
+   * force: show the countdown now regardless (strip click, popup button).
    */
-  moment: 'none' | 'check' | 'force';
+  countdown: 'none' | 'check' | 'force';
 }
 
-/** Background or popup to content script: run a moment check now. */
-interface MomentPromptMessage {
-  type: 'momentPrompt';
+/** Background or popup to content script: run a countdown check now. */
+interface CountdownPromptMessage {
+  type: 'countdownPrompt';
   force: boolean;
 }
 
 /**
- * Content script to background: the page went away while the moment was
+ * Content script to background: the page went away while the countdown was
  * still up, so nobody saw it. Carries the claim token so that only the
  * claim it belongs to is released.
  */
-interface MomentLostMessage {
-  type: 'momentLost';
+interface CountdownLostMessage {
+  type: 'countdownLost';
   doc: string;
   /** The claim token, or "" when the page died before its answer arrived. */
   token: string;
 }
 
-type FdMessage = HelloMessage | MomentPromptMessage | MomentLostMessage;
+type FdMessage = HelloMessage | CountdownPromptMessage | CountdownLostMessage;
 
 interface StripView {
   fraction: number;
@@ -43,8 +43,8 @@ interface StripView {
   tip: string;
 }
 
-interface MomentView {
-  /** The claim token for the daily moment; "" for a forced show, which is never released. */
+interface CountdownView {
+  /** The claim token for the daily countdown; "" for a forced show, which is never released. */
   token: string;
   fraction: number;
   number: string;
@@ -56,10 +56,10 @@ interface MomentView {
 interface HelloReply {
   /** Null when the strip is off or the date of birth is not set. */
   strip: StripView | null;
-  /** Non-null exactly when the content script should show the moment now. */
-  moment: MomentView | null;
-  /** Local date ("YYYY-MM-DD") for which no further moment checks are needed, or "". */
-  momentDoneFor: string;
+  /** Non-null exactly when the content script should show the countdown now. */
+  countdown: CountdownView | null;
+  /** Local date ("YYYY-MM-DD") for which no further countdown checks are needed, or "". */
+  countdownDoneFor: string;
   /** Epoch milliseconds of the next time the strip may change. */
   nextChangeAt: number;
 }

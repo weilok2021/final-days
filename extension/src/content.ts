@@ -1,5 +1,5 @@
 // Content script: the 4 px life bar at the top of every page and the daily
-// moment overlay. It is a classic script (no imports) and computes nothing
+// countdown overlay. It is a classic script (no imports) and computes nothing
 // itself: everything it shows arrives from the background worker in one
 // message, so the numbers and wording live in exactly one place (life.ts).
 (() => {
@@ -11,7 +11,7 @@
   const GRADIENT = 'linear-gradient(90deg, #16a34a 0%, #eab308 50%, #dc2626 100%)';
   const QUIET_GREY = '#6b7280';
   const TIP_DELAY_MS = 350;
-  /** A moment on screen this long counts as seen even if the page then goes away. */
+  /** A countdown on screen this long counts as seen even if the page then goes away. */
   const SEEN_AFTER_MS = 3000;
   /** Identifies this document to the worker; a redirect target is a new document with a new id. */
   const DOC_ID = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -118,18 +118,18 @@
     strip.tip.textContent = view.tip;
   }
 
-  // ---- the moment -----------------------------------------------------------
+  // ---- the countdown -----------------------------------------------------------
 
-  let moment: HTMLElement | null = null;
-  /** Claim token of the moment on screen, "" when none or when it was a forced show. */
-  let momentToken = '';
-  let momentShownAt = 0;
+  let countdown: HTMLElement | null = null;
+  /** Claim token of the countdown on screen, "" when none or when it was a forced show. */
+  let countdownToken = '';
+  let countdownShownAt = 0;
 
-  function showMoment(view: MomentView): void {
-    hideMoment();
-    momentToken = view.token;
-    momentShownAt = Date.now();
-    const host = document.createElement('final-days-moment');
+  function showCountdown(view: CountdownView): void {
+    hideCountdown();
+    countdownToken = view.token;
+    countdownShownAt = Date.now();
+    const host = document.createElement('final-days-countdown');
     pin(host, { ...HOST_RESET, top: '0', left: '0', right: '0', bottom: '0', cursor: 'default' });
     host.setAttribute('role', 'dialog');
     host.setAttribute('aria-label', 'Final Days');
@@ -156,35 +156,35 @@
     text('.q', view.question);
     text('.foot', view.footer);
     // Any click or key dismisses it, as on Windows.
-    host.addEventListener('click', hideMoment);
-    host.addEventListener('auxclick', hideMoment);
+    host.addEventListener('click', hideCountdown);
+    host.addEventListener('auxclick', hideCountdown);
     host.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      hideMoment();
+      hideCountdown();
     });
-    window.addEventListener('keydown', onMomentKey, true);
+    window.addEventListener('keydown', onCountdownKey, true);
     docRoot.appendChild(host);
-    moment = host;
+    countdown = host;
     host.focus({ preventScroll: true });
   }
 
-  function onMomentKey(e: KeyboardEvent): void {
-    if (!moment) return;
+  function onCountdownKey(e: KeyboardEvent): void {
+    if (!countdown) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    hideMoment();
+    hideCountdown();
   }
 
-  function hideMoment(): void {
-    if (!moment) return;
-    moment.remove();
-    moment = null;
-    momentToken = '';
-    window.removeEventListener('keydown', onMomentKey, true);
+  function hideCountdown(): void {
+    if (!countdown) return;
+    countdown.remove();
+    countdown = null;
+    countdownToken = '';
+    window.removeEventListener('keydown', onCountdownKey, true);
   }
 
   /**
-   * The page is going away (navigation, redirect, close). If the moment is up
+   * The page is going away (navigation, redirect, close). If the countdown is up
    * and had only just appeared, nobody can have read it: give the day back so
    * the next page shows it. If it had been up for a few seconds, the user saw
    * it and chose to move on, which counts as seen. If a check is still
@@ -193,15 +193,15 @@
    */
   function onPageHide(): void {
     let token: string | null = null;
-    if (moment) {
-      const seen = Date.now() - momentShownAt >= SEEN_AFTER_MS;
-      if (momentToken !== '' && !seen) token = momentToken;
-      hideMoment();
+    if (countdown) {
+      const seen = Date.now() - countdownShownAt >= SEEN_AFTER_MS;
+      if (countdownToken !== '' && !seen) token = countdownToken;
+      hideCountdown();
     } else if (checksInFlight > 0) {
       token = '';
     }
     if (token === null) return;
-    const lost: MomentLostMessage = { type: 'momentLost', doc: DOC_ID, token };
+    const lost: CountdownLostMessage = { type: 'countdownLost', doc: DOC_ID, token };
     try {
       void chrome.runtime.sendMessage(lost).catch(() => undefined);
     } catch {
@@ -211,10 +211,10 @@
 
   // ---- talking to the background --------------------------------------------
 
-  /** Local date for which this tab already knows no moment is due; "" means ask. */
-  let momentDoneFor = '';
+  /** Local date for which this tab already knows no countdown is due; "" means ask. */
+  let countdownDoneFor = '';
   let changeTimer = 0;
-  /** Moment checks sent and not yet answered. */
+  /** Countdown checks sent and not yet answered. */
   let checksInFlight = 0;
 
   function localToday(): string {
@@ -223,9 +223,9 @@
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   }
 
-  async function refresh(mode: HelloMessage['moment']): Promise<void> {
-    if (mode === 'check' && (momentDoneFor === localToday() || document.visibilityState !== 'visible')) mode = 'none';
-    const message: HelloMessage = { type: 'hello', doc: DOC_ID, moment: mode, host: location.hostname };
+  async function refresh(mode: HelloMessage['countdown']): Promise<void> {
+    if (mode === 'check' && (countdownDoneFor === localToday() || document.visibilityState !== 'visible')) mode = 'none';
+    const message: HelloMessage = { type: 'hello', doc: DOC_ID, countdown: mode, host: location.hostname };
     let reply: HelloReply | undefined;
     if (mode !== 'none') checksInFlight++;
     try {
@@ -240,8 +240,8 @@
     }
     if (!reply) return;
     renderStrip(reply.strip);
-    if (reply.moment) showMoment(reply.moment);
-    momentDoneFor = reply.momentDoneFor;
+    if (reply.countdown) showCountdown(reply.countdown);
+    countdownDoneFor = reply.countdownDoneFor;
     schedule(reply.nextChangeAt);
   }
 
@@ -255,7 +255,7 @@
   function teardown(): void {
     window.clearTimeout(changeTimer);
     renderStrip(null);
-    hideMoment();
+    hideCountdown();
   }
 
   document.addEventListener('visibilitychange', () => {
@@ -266,17 +266,17 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local') {
       // The day was claimed or released somewhere: ask again on the next return.
-      if ('lastMoment' in changes) momentDoneFor = '';
+      if ('lastCountdown' in changes) countdownDoneFor = '';
       return;
     }
     if (area !== 'sync') return;
-    momentDoneFor = '';
+    countdownDoneFor = '';
     void refresh('none');
   });
   chrome.runtime.onMessage.addListener((message: FdMessage) => {
-    if (message?.type !== 'momentPrompt') return;
+    if (message?.type !== 'countdownPrompt') return;
     // The worker checked the stored state before asking, so it outranks this tab's memory.
-    momentDoneFor = '';
+    countdownDoneFor = '';
     void refresh(message.force ? 'force' : 'check');
   });
 

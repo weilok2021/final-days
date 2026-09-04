@@ -1,25 +1,41 @@
 // Background service worker: the single place that reads settings, computes
-// the numbers, decides whether today's moment is due, and keeps the toolbar
+// the numbers, decides whether today's countdown is due, and keeps the toolbar
 // icon current. Content scripts ask it for everything they show.
 import {
   computeLife,
   formatInt,
   inQuietHours,
   localDateString,
-  momentLine,
+  countdownLine,
   nextChange,
   question,
   siteListed,
   tipText,
   type Life,
 } from './life.ts';
-import { loadSettings, resolveSettings, saveSettings } from './settings.ts';
+import {
+  RENAMED_LOCAL_KEYS,
+  RENAMED_SYNC_KEYS,
+  loadSettings,
+  migrateRenamedKeys,
+  resolveSettings,
+  saveSettings,
+} from './settings.ts';
 
-const MOMENT_FOOTER = 'click anywhere to continue';
-/** Spec: the moment may show on return from at least five minutes without input. */
+const COUNTDOWN_FOOTER = 'click anywhere to continue';
+/** Spec: the countdown may show on return from at least five minutes without input. */
 const IDLE_SECONDS = 300;
 
 chrome.idle.setDetectionInterval(IDLE_SECONDS);
+
+/** Stored values under their current key names. Every read of settings or state in this worker waits for it. */
+const storageReady: Promise<void> = Promise.all([
+  migrateRenamedKeys(chrome.storage.sync, RENAMED_SYNC_KEYS),
+  migrateRenamedKeys(chrome.storage.local, RENAMED_LOCAL_KEYS),
+]).then(
+  () => undefined,
+  (err: unknown) => console.warn('Final Days: storage migration failed', err),
+);
 
 chrome.runtime.onInstalled.addListener(() => {
   void firstRun();
@@ -37,8 +53,8 @@ chrome.commands?.onCommand.addListener((command) => {
   if (command === 'toggle-strip') void toggleStrip();
 });
 chrome.runtime.onMessage.addListener((message: FdMessage, sender, sendResponse) => {
-  if (message?.type === 'momentLost') {
-    void releaseMoment(message.doc, message.token);
+  if (message?.type === 'countdownLost') {
+    void releaseCountdown(message.doc, message.token);
     return false;
   }
   if (message?.type !== 'hello') return false;
@@ -53,6 +69,7 @@ void refreshAction();
 
 /** Opens the options page until a date of birth has been set. */
 async function firstRun(): Promise<void> {
+  await storageReady;
   const settings = await loadSettings();
   if (settings.birth === '') await chrome.runtime.openOptionsPage();
   await refreshAction();
@@ -62,48 +79,49 @@ async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender
   const now = new Date();
   const today = localDateString(now);
   if (today !== actionDate) void refreshAction(); // a long-lived worker crossed midnight
+  await storageReady;
   const settings = await loadSettings();
   const resolved = resolveSettings(settings, now);
   const nextChangeAt = nextChange(now, resolved?.ranges ?? []).getTime();
-  if (!resolved) return { strip: null, moment: null, momentDoneFor: today, nextChangeAt };
+  if (!resolved) return { strip: null, countdown: null, countdownDoneFor: today, nextChangeAt };
 
   const life = computeLife(resolved.birth, now);
   const strip: StripView | null = settings.strip
     ? { fraction: life.fraction, quiet: inQuietHours(resolved.ranges, now), tip: tipText(life) }
     : null;
 
-  // Only a page can show the moment, so only messages from a tab count. In the
+  // Only a page can show the countdown, so only messages from a tab count. In the
   // sites mode every load of a listed site shows it and nothing is claimed; in
   // the daily mode the first page to ask claims the day. A forced show works
   // anywhere in either mode.
-  const sitesMode = settings.momentMode === 'sites';
+  const sitesMode = settings.countdownMode === 'sites';
   const listed = sitesMode ? siteListed(resolved.sites, message.host) : true;
-  const force = message.moment === 'force';
-  const wantsMoment = sender.tab !== undefined && message.moment !== 'none' && (listed || force);
-  let moment: MomentView | null = null;
-  if (wantsMoment && (force || settings.moment)) {
+  const force = message.countdown === 'force';
+  const wantsCountdown = sender.tab !== undefined && message.countdown !== 'none' && (listed || force);
+  let countdown: CountdownView | null = null;
+  if (wantsCountdown && (force || settings.countdown)) {
     if (force) {
-      await claimMoment(today, true, message.doc);
-      moment = momentView(life, '');
+      await claimCountdown(today, true, message.doc);
+      countdown = countdownView(life, '');
     } else if (sitesMode) {
-      moment = momentView(life, '');
+      countdown = countdownView(life, '');
     } else {
-      const token = await claimMoment(today, false, message.doc);
-      if (token !== null) moment = momentView(life, token);
+      const token = await claimCountdown(today, false, message.doc);
+      if (token !== null) countdown = countdownView(life, token);
     }
   }
-  const done = wantsMoment || !settings.moment || !listed || (!sitesMode && (await shownOn(today)));
-  return { strip, moment, momentDoneFor: done ? today : '', nextChangeAt };
+  const done = wantsCountdown || !settings.countdown || !listed || (!sitesMode && (await shownOn(today)));
+  return { strip, countdown, countdownDoneFor: done ? today : '', nextChangeAt };
 }
 
-function momentView(life: Life, token: string): MomentView {
+function countdownView(life: Life, token: string): CountdownView {
   return {
     token,
     fraction: life.fraction,
     number: formatInt(life.left),
-    line: momentLine(life),
+    line: countdownLine(life),
     question: question(life.left),
-    footer: MOMENT_FOOTER,
+    footer: COUNTDOWN_FOOTER,
   };
 }
 
@@ -118,16 +136,17 @@ function serial<T>(work: () => Promise<T>): Promise<T> {
   return result;
 }
 
-interface MomentState {
-  lastMoment: string;
-  momentToken: string;
+interface CountdownState {
+  lastCountdown: string;
+  countdownToken: string;
 }
 
-async function readState(): Promise<MomentState> {
-  const raw = await chrome.storage.local.get({ lastMoment: '', momentToken: '' });
+async function readState(): Promise<CountdownState> {
+  await storageReady;
+  const raw = await chrome.storage.local.get({ lastCountdown: '', countdownToken: '' });
   return {
-    lastMoment: typeof raw.lastMoment === 'string' ? raw.lastMoment : '',
-    momentToken: typeof raw.momentToken === 'string' ? raw.momentToken : '',
+    lastCountdown: typeof raw.lastCountdown === 'string' ? raw.lastCountdown : '',
+    countdownToken: typeof raw.countdownToken === 'string' ? raw.countdownToken : '',
   };
 }
 
@@ -146,25 +165,25 @@ const ABANDON_WINDOW_MS = 60_000;
  * already taken or the asking page is already gone. A forced show always wins
  * and gets the empty token, so it can never be released.
  */
-function claimMoment(today: string, force: boolean, doc: string): Promise<string | null> {
+function claimCountdown(today: string, force: boolean, doc: string): Promise<string | null> {
   return serial(async () => {
     forgetOldAbandons();
     if (abandoned.delete(doc)) return null; // the page died before hearing this answer
     const state = await readState();
-    if (!force && state.lastMoment === today) return null;
+    if (!force && state.lastCountdown === today) return null;
     const token = force ? '' : crypto.randomUUID();
-    await chrome.storage.local.set({ lastMoment: today, momentToken: token });
+    await chrome.storage.local.set({ lastCountdown: today, countdownToken: token });
     lastClaim = force ? null : { doc, token, at: Date.now() };
     return token;
   });
 }
 
 /**
- * The page went away before anyone saw the moment: give the day back. With
+ * The page went away before anyone saw the countdown: give the day back. With
  * the empty token the page died with its check unanswered; if the answer
  * already claimed the day for it, undo that, otherwise make sure it cannot.
  */
-function releaseMoment(doc: string, token: string): Promise<void> {
+function releaseCountdown(doc: string, token: string): Promise<void> {
   return serial(async () => {
     forgetOldAbandons();
     if (token === '') {
@@ -175,8 +194,8 @@ function releaseMoment(doc: string, token: string): Promise<void> {
       token = lastClaim.token;
     }
     const state = await readState();
-    if (state.momentToken !== token) return; // a different claim owns the day now
-    await chrome.storage.local.remove(['lastMoment', 'momentToken']);
+    if (state.countdownToken !== token) return; // a different claim owns the day now
+    await chrome.storage.local.remove(['lastCountdown', 'countdownToken']);
     if (lastClaim?.token === token) lastClaim = null;
   });
 }
@@ -187,17 +206,18 @@ function forgetOldAbandons(): void {
 }
 
 async function shownOn(day: string): Promise<boolean> {
-  return (await readState()).lastMoment === day;
+  return (await readState()).lastCountdown === day;
 }
 
 /**
- * The user came back after being idle or locked. If today's moment is still
+ * The user came back after being idle or locked. If today's countdown is still
  * due, ask the page in front to run a check; pages the extension cannot reach
  * (the browser's own pages) fall through to the next page load or tab switch.
  */
 async function onReturn(): Promise<void> {
+  await storageReady;
   const settings = await loadSettings();
-  if (!settings.moment || settings.birth === '' || settings.momentMode === 'sites') return;
+  if (!settings.countdown || settings.birth === '' || settings.countdownMode === 'sites') return;
   if (await shownOn(localDateString(new Date()))) return;
   await promptActiveTab(false);
 }
@@ -205,7 +225,7 @@ async function onReturn(): Promise<void> {
 async function promptActiveTab(force: boolean): Promise<boolean> {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (tab?.id === undefined) return false;
-  const message: MomentPromptMessage = { type: 'momentPrompt', force };
+  const message: CountdownPromptMessage = { type: 'countdownPrompt', force };
   try {
     await chrome.tabs.sendMessage(tab.id, message);
     return true;
@@ -227,6 +247,7 @@ let actionDate = '';
 async function refreshAction(): Promise<void> {
   const now = new Date();
   actionDate = localDateString(now);
+  await storageReady;
   const settings = await loadSettings();
   const resolved = resolveSettings(settings, now);
   try {

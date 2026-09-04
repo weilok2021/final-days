@@ -8,55 +8,55 @@ import (
 	"unsafe"
 )
 
-// moment is the once-a-day full-screen reminder.
-type moment struct {
+// countdown is the once-a-day full-screen reminder.
+type countdown struct {
 	app     *App
 	hwnd    uintptr
 	showing bool
 }
 
-var momentProcPtr uintptr
+var countdownProcPtr uintptr
 
-func newMoment(app *App) (*moment, error) {
-	m := &moment{app: app}
-	if momentProcPtr == 0 {
-		momentProcPtr = syscall.NewCallback(func(hwnd, msg, wp, lp uintptr) uintptr {
-			if app.moment == nil {
+func newCountdown(app *App) (*countdown, error) {
+	m := &countdown{app: app}
+	if countdownProcPtr == 0 {
+		countdownProcPtr = syscall.NewCallback(func(hwnd, msg, wp, lp uintptr) uintptr {
+			if app.countdown == nil {
 				return defWindowProc(hwnd, msg, wp, lp)
 			}
-			return app.moment.proc(hwnd, msg, wp, lp)
+			return app.countdown.proc(hwnd, msg, wp, lp)
 		})
 		bg, _, _ := pCreateSolidBrush.Call(colorref(0x0b, 0x0d, 0x12))
-		if err := registerClass("FinalDaysMoment", momentProcPtr, bg, csHRedraw|csVRedraw); err != nil {
+		if err := registerClass("FinalDaysCountdown", countdownProcPtr, bg, csHRedraw|csVRedraw); err != nil {
 			return nil, err
 		}
 	}
-	app.moment = m
+	app.countdown = m
 	var err error
-	m.hwnd, err = createWindow(wsExToolWindow|wsExTopmost, "FinalDaysMoment", "Final Days", wsPopup, 0, 0, 10, 10)
+	m.hwnd, err = createWindow(wsExToolWindow|wsExTopmost, "FinalDaysCountdown", "Final Days", wsPopup, 0, 0, 10, 10)
 	if err != nil {
-		app.moment = nil
+		app.countdown = nil
 		return nil, err
 	}
 	return m, nil
 }
 
-func (m *moment) show() {
+func (m *countdown) show() {
 	w, h := systemMetric(smCXScreen), systemMetric(smCYScreen)
 	pSetWindowPos.Call(m.hwnd, hwndTopmost, 0, 0, uintptr(w), uintptr(h), swpShowWindow)
 	pSetForegroundWindow.Call(m.hwnd)
 	pSetFocus.Call(m.hwnd)
 	pInvalidateRect.Call(m.hwnd, 0, 1)
 	m.showing = true
-	m.app.markMomentShown(time.Now())
+	m.app.markCountdownShown(time.Now())
 }
 
-func (m *moment) hide() {
+func (m *countdown) hide() {
 	pShowWindow.Call(m.hwnd, swHide)
 	m.showing = false
 }
 
-func (m *moment) proc(hwnd, msg, wp, lp uintptr) uintptr {
+func (m *countdown) proc(hwnd, msg, wp, lp uintptr) uintptr {
 	switch msg {
 	case wmPaint:
 		var ps paintStruct
@@ -71,7 +71,7 @@ func (m *moment) proc(hwnd, msg, wp, lp uintptr) uintptr {
 	return defWindowProc(hwnd, msg, wp, lp)
 }
 
-func (m *moment) paint(hdc uintptr) {
+func (m *countdown) paint(hdc uintptr) {
 	var rc rect
 	pGetClientRect.Call(m.hwnd, uintptr(unsafe.Pointer(&rc)))
 	w, h := rc.Right, rc.Bottom

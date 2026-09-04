@@ -1,6 +1,6 @@
-// Toolbar popup: the numbers, "show today's moment", the life-bar switch and
+// Toolbar popup: the numbers, "show the countdown", the life-bar switch and
 // a way to the options page. The browser equivalent of the Windows tray menu.
-import { computeLife, formatInt, momentLine } from './life.ts';
+import { computeLife, formatInt, countdownLine } from './life.ts';
 import { loadSettings, resolveSettings, saveSettings } from './settings.ts';
 
 function el<T extends HTMLElement>(id: string): T {
@@ -27,7 +27,7 @@ if (resolved) {
   const life = computeLife(resolved.birth, now);
   rest.style.width = `${(1 - life.fraction) * 100}%`;
   left.textContent = formatInt(life.left);
-  line.textContent = momentLine(life);
+  line.textContent = countdownLine(life);
   strip.checked = settings.strip;
   ready.hidden = false;
 } else {
@@ -35,11 +35,11 @@ if (resolved) {
   setup.hidden = false;
 }
 
-show.addEventListener('click', () => void showMoment());
+show.addEventListener('click', () => void showCountdown());
 
-async function showMoment(): Promise<void> {
+async function showCountdown(): Promise<void> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const message: MomentPromptMessage = { type: 'momentPrompt', force: true };
+  const message: CountdownPromptMessage = { type: 'countdownPrompt', force: true };
   try {
     if (tab?.id === undefined) throw new Error('no tab');
     await chrome.tabs.sendMessage(tab.id, message);

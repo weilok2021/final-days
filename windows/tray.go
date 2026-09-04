@@ -13,7 +13,7 @@ const wmTray = wmApp + 1
 
 const (
 	menuTitle = iota + 1
-	menuMoment
+	menuCountdown
 	menuStrip
 	menuStartup
 	menuConfig
@@ -101,7 +101,7 @@ func (t *tray) event(wp, lp uintptr) {
 	case wmContextMenu, ninSelect, ninSelect + 1:
 		t.showMenu(x, y)
 	case wmLButtonDblClk:
-		t.app.showMoment(true)
+		t.app.showCountdown(true)
 	}
 }
 
@@ -122,7 +122,7 @@ func (t *tray) showMenu(x, y int32) {
 	}
 	add(menuTitle, mfGrayed, FormatInt(t.app.life.Left)+" days left")
 	sep()
-	add(menuMoment, 0, "Show today's moment")
+	add(menuCountdown, 0, "Show the countdown")
 	add(menuStrip, checked(t.app.strip != nil && t.app.strip.registered), "Life bar\tCtrl+Alt+F")
 	add(menuStartup, checked(startupEnabled()), "Start with Windows")
 	add(menuConfig, 0, "Open config file")

@@ -167,7 +167,7 @@ func (s *strip) proc(hwnd, m, wp, lp uintptr) uintptr {
 		s.hideTip()
 		return 0
 	case wmLButtonDown:
-		s.app.showMoment(true)
+		s.app.showCountdown(true)
 		return 0
 	}
 	return defWindowProc(hwnd, m, wp, lp)

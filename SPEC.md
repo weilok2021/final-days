@@ -36,7 +36,7 @@ edge, **4 px tall** at 100 % scaling (scale with DPI).
 - The strip can be toggled at runtime (tray menu, hotkey Ctrl+Alt+F). Off means
   removed entirely, space returned to the desktop.
 
-## 3. The moment (once a day)
+## 3. The countdown (once a day)
 
 A full-screen, black (`#0b0d12`) window on the primary display, shown at most
 **once per calendar day**, the first time the user comes back to the machine:
@@ -60,7 +60,7 @@ not used anywhere.
 ## 4. Tray and controls
 
 - A tray icon drawn as a miniature of the strip. Tooltip: `Final Days · 18,271 days left`.
-- Menu: days left (title), Show today's moment, Strip on/off, Start with Windows,
+- Menu: days left (title), Show the countdown, Strip on/off, Start with Windows,
   Open config file, Quit.
 - Hotkey Ctrl+Alt+F toggles the strip.
 
@@ -68,7 +68,7 @@ not used anywhere.
 
 - One executable. No installer.
 - Configuration lives in `final-days.toml` **next to the executable**; runtime state
-  (the date the moment was last shown) in `final-days.state` next to it.
+  (the date the countdown was last shown) in `final-days.state` next to it.
 - No registry writes. "Start with Windows" is opt-in and creates a single shortcut in
   the user's Startup folder; turning it off deletes that shortcut.
 - First run with no config: create the file, open it, and ask for the date of birth.
@@ -80,11 +80,13 @@ not used anywhere.
 # Final Days
 birth = "1996-01-01"         # required, YYYY-MM-DD
 strip = true                 # show the 4 px strip
-moment = true                # show the once-a-day moment
+countdown = true             # show the once-a-day countdown
 quiet_hours = "09:00-12:00"  # comma-separated HH:MM-HH:MM ranges, strip goes grey
 ```
 
 Only flat `key = value` pairs, strings in double quotes, booleans bare, `#` comments.
+The keys `countdown` and `last_countdown` were `moment` and `last_moment`
+until 2026-09-04; the old names are still read when the new ones are absent.
 
 ## 7. Browser extension port
 
@@ -95,10 +97,10 @@ thing, and this section is the record of those differences.
 - **Strip.** A content script draws it over the top 4 CSS px of every web page
   (a page cannot reserve screen space) at the highest stacking level. It cannot
   appear on the browser's own pages, the extension store or PDFs. Colours,
-  quiet hours, the hover label and click-to-show-the-moment follow section 2.
+  quiet hours, the hover label and click-to-show-the-countdown follow section 2.
   The keyboard toggle is `Alt+Shift+F`, because browsers reserve `Ctrl+Alt`
   combinations. Off means the element is removed from every page.
-- **Moment.** Covers the current tab, not the whole screen; content and
+- **Countdown.** Covers the current tab, not the whole screen; content and
   dismissal follow section 3. "The first time the user comes back" is
   whichever of these happens first on a day when it has not been shown:
   1. a page loads in a visible tab;
@@ -108,24 +110,24 @@ thing, and this section is the record of those differences.
   The day is claimed the instant one tab wins, so several tabs loading at once
   show it exactly once. Pages without the content script (browser pages) fall
   through to the next page that has it. If the page goes away (a redirect, a
-  navigation) within 3 seconds of the moment appearing, nobody can have read
+  navigation) within 3 seconds of the countdown appearing, nobody can have read
   it: the day is released and the next page shows it. After 3 seconds on
   screen it counts as seen, whether dismissed or left behind.
-- **Two modes for the moment**, chosen on the options page. *Once a day* is
+- **Two modes for the countdown**, chosen on the options page. *Once a day* is
   section 3 as described above, and the default. *Every time you open one of
-  these sites* takes a list of host names (subdomains included): the moment
+  these sites* takes a list of host names (subdomains included): the countdown
   then appears each time a listed site loads, once per page load, and never
   anywhere else, so it stays off work pages and shared screens. In that mode
   there is no daily claim, no release and no idle trigger; a page loads, the
-  moment shows. A forced show from the popup or the strip works on any page
+  countdown shows. A forced show from the popup or the strip works on any page
   in either mode.
 - **Settings.** The four values of section 6 plus the site list, entered on
   an options page instead of a file, kept in the browser's synced extension
   storage. The last-shown date lives in local extension storage.
 - **Toolbar.** The icon is the miniature strip of section 4, redrawn with the
   real fraction; its tooltip is `Final Days · 18,271 days left`. Its popup
-  holds the days left, the day count, **Show today's moment**, the strip
+  holds the days left, the day count, **Show the countdown**, the strip
   switch and a link to the options.
 - **Not ported.** Start-with-Windows (the browser starts the extension), the
   config file, and hiding behind full-screen applications (a full-screen video
-  already covers the page, so the strip and the moment are not seen over it).
+  already covers the page, so the strip and the countdown are not seen over it).
