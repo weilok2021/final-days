@@ -1,7 +1,7 @@
 // End-to-end test of the built extension in Playwright's Chromium. It loads
 // extension/dist unpacked, answers every https request itself with a small
 // fake page (no real network), and drives the options page, the strip and the
-// moment the way a person would. Run: npm run build && npm run e2e
+// countdown the way a person would. Run: npm run build && npm run e2e
 import { after, before, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { chromium, type BrowserContext, type Page } from 'playwright';
-import { computeLife, formatInt, localDateString, momentLine, parseBirth, tipText } from '../src/life.ts';
+import { computeLife, formatInt, localDateString, countdownLine, parseBirth, tipText } from '../src/life.ts';
 
 const DIST = resolve(import.meta.dirname, '../dist');
 const SHOTS = process.env['FD_SHOTS'] ?? join(tmpdir(), 'final-days-shots');
@@ -77,7 +77,7 @@ const resetDay = () => options.evaluate(() => chrome.storage.local.clear());
 async function saveOptions(values: {
   birth?: string;
   strip?: boolean;
-  moment?: boolean;
+  countdown?: boolean;
   quiet?: string;
   mode?: 'daily' | 'sites';
   sites?: string;
@@ -85,7 +85,7 @@ async function saveOptions(values: {
   if (values.birth !== undefined) await options.fill('#birth', values.birth);
   if (values.mode !== undefined) await options.check(values.mode === 'sites' ? '#mode-sites' : '#mode-daily');
   if (values.strip !== undefined) await options.setChecked('#strip', values.strip);
-  if (values.moment !== undefined) await options.setChecked('#moment', values.moment);
+  if (values.countdown !== undefined) await options.setChecked('#countdown', values.countdown);
   if (values.quiet !== undefined) await options.fill('#quiet', values.quiet);
   if (values.sites !== undefined) await options.fill('#sites', values.sites);
   await options.click('button[type=submit]');
@@ -94,11 +94,11 @@ async function saveOptions(values: {
 }
 
 const strip = (page: Page) => page.locator('final-days-strip');
-const moment = (page: Page) => page.locator('final-days-moment');
+const countdown = (page: Page) => page.locator('final-days-countdown');
 
-async function expectNoMoment(page: Page, what: string): Promise<void> {
+async function expectNoCountdown(page: Page, what: string): Promise<void> {
   await sleep(900);
-  assert.equal(await moment(page).count(), 0, `${what}: a moment appeared`);
+  assert.equal(await countdown(page).count(), 0, `${what}: a countdown appeared`);
 }
 
 before(async () => {
@@ -152,49 +152,49 @@ test('the options page refuses bad input without saving it', SLOW, async () => {
   await options.check('#mode-daily');
   const settings = await options.evaluate(() => chrome.storage.sync.get(null));
   assert.equal(settings['quietHours'], '');
-  assert.equal(settings['momentSites'] ?? '', '');
+  assert.equal(settings['countdownSites'] ?? '', '');
 });
 
 let page: Page;
 
-test('the strip and the first moment of the day appear on the first page', SLOW, async () => {
+test('the strip and the first countdown of the day appear on the first page', SLOW, async () => {
   page = await context.newPage();
   await page.goto('https://example.com/');
   await strip(page).waitFor({ state: 'attached', timeout: 10_000 });
   const box = await strip(page).boundingBox();
   assert.deepEqual(box, { x: 0, y: 0, width: VIEWPORT.width, height: 4 });
 
-  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
-  const mbox = await moment(page).boundingBox();
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
+  const mbox = await countdown(page).boundingBox();
   assert.deepEqual(mbox, { x: 0, y: 0, width: VIEWPORT.width, height: VIEWPORT.height });
-  await shot(page, '02-moment');
-  assertColour(await pixel(page, 100, 100), '#0b0d12', 'moment background');
-  assertColour(await pixel(page, 5, 1), '#16a34a', 'moment bar, lived end');
-  assertColour(await pixel(page, 1275, 1), '#27272a', 'moment bar, remainder');
+  await shot(page, '02-countdown');
+  assertColour(await pixel(page, 100, 100), '#0b0d12', 'countdown background');
+  assertColour(await pixel(page, 5, 1), '#16a34a', 'countdown bar, lived end');
+  assertColour(await pixel(page, 1275, 1), '#27272a', 'countdown bar, remainder');
 
   const s = await state();
-  assert.equal(s['lastMoment'], localDateString(new Date()));
-  assert.equal(typeof s['momentToken'], 'string');
-  assert.notEqual(s['momentToken'], '');
+  assert.equal(s['lastCountdown'], localDateString(new Date()));
+  assert.equal(typeof s['countdownToken'], 'string');
+  assert.notEqual(s['countdownToken'], '');
 });
 
-test('a click dismisses the moment and a reload does not bring it back', SLOW, async () => {
+test('a click dismisses the countdown and a reload does not bring it back', SLOW, async () => {
   await page.mouse.click(640, 360);
-  await moment(page).waitFor({ state: 'detached', timeout: 5_000 });
+  await countdown(page).waitFor({ state: 'detached', timeout: 5_000 });
   await page.reload();
   await strip(page).waitFor({ state: 'attached', timeout: 10_000 });
-  await expectNoMoment(page, 'after reload');
+  await expectNoCountdown(page, 'after reload');
   await shot(page, '03-strip-only');
   assertColour(await pixel(page, 5, 2), '#16a34a', 'strip, lived end');
   assertColour(await pixel(page, 1275, 2), '#e7e5e4', 'strip, remainder');
   assertColour(await pixel(page, 640, 20), '#dddddd', 'page header just under the strip');
 });
 
-test('a second page today shows the strip but no moment', SLOW, async () => {
+test('a second page today shows the strip but no countdown', SLOW, async () => {
   const other = await context.newPage();
   await other.goto('https://example.org/');
   await strip(other).waitFor({ state: 'attached', timeout: 10_000 });
-  await expectNoMoment(other, 'second page');
+  await expectNoCountdown(other, 'second page');
   await other.close();
 });
 
@@ -211,24 +211,24 @@ test('the hover label appears after a short pause', SLOW, async () => {
   assertColour(await pixel(page, 190, 20), '#dddddd', 'label gone');
 });
 
-test('keys dismiss the moment and are swallowed only while it is up', SLOW, async () => {
+test('keys dismiss the countdown and are swallowed only while it is up', SLOW, async () => {
   await resetDay();
   await page.goto('https://example.com/');
-  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
   await page.keyboard.press('a');
-  await moment(page).waitFor({ state: 'detached', timeout: 5_000 });
+  await countdown(page).waitFor({ state: 'detached', timeout: 5_000 });
   await page.locator('#q').focus();
   await page.keyboard.type('b');
   assert.equal(await page.locator('#q').inputValue(), 'b');
 });
 
-test('several tabs loading at once show the moment exactly once', SLOW, async () => {
+test('several tabs loading at once show the countdown exactly once', SLOW, async () => {
   await resetDay();
   const pages = await Promise.all([1, 2, 3].map(() => context.newPage()));
   await Promise.all(pages.map((p, i) => p.goto(`https://tab${i}.example/`)));
   await sleep(1_500);
-  const counts = await Promise.all(pages.map((p) => moment(p).count()));
-  assert.equal(counts.reduce((a, b) => a + b, 0), 1, `moments per tab: ${counts.join(',')}`);
+  const counts = await Promise.all(pages.map((p) => countdown(p).count()));
+  assert.equal(counts.reduce((a, b) => a + b, 0), 1, `countdowns per tab: ${counts.join(',')}`);
   await Promise.all(pages.map((p) => p.close()));
 });
 
@@ -249,48 +249,48 @@ test('switching the strip off removes it from open pages', SLOW, async () => {
   await strip(page).waitFor({ state: 'attached', timeout: 5_000 });
 });
 
-test('in the sites mode the moment appears on every load of a listed site and nowhere else', SLOW, async () => {
+test('in the sites mode the countdown appears on every load of a listed site and nowhere else', SLOW, async () => {
   await saveOptions({ mode: 'sites', sites: 'youtube.com, facebook.com' });
   await page.goto('https://github.com/');
   await strip(page).waitFor({ state: 'attached', timeout: 10_000 });
-  await expectNoMoment(page, 'unlisted site');
+  await expectNoCountdown(page, 'unlisted site');
   await page.goto('https://www.youtube.com/');
-  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
-  await shot(page, '06-moment-on-listed-site');
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await shot(page, '06-countdown-on-listed-site');
   await page.mouse.click(640, 360);
-  await moment(page).waitFor({ state: 'detached', timeout: 5_000 });
+  await countdown(page).waitFor({ state: 'detached', timeout: 5_000 });
   await page.bringToFront();
   await sleep(600);
-  assert.equal(await moment(page).count(), 0, 'the same page must not show it again on focus');
+  assert.equal(await countdown(page).count(), 0, 'the same page must not show it again on focus');
   await page.reload();
-  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
   await page.mouse.click(640, 360);
   await page.goto('https://www.facebook.com/');
-  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
   await page.mouse.click(640, 360);
   const s = await state();
-  assert.equal(s['lastMoment'], undefined, 'the sites mode must not claim the day');
+  assert.equal(s['lastCountdown'], undefined, 'the sites mode must not claim the day');
   const hidden = await context.newPage();
   await hidden.goto('https://www.youtube.com/');
   await hidden.close();
 });
 
-test('a moment left on screen for three seconds counts as seen', SLOW, async () => {
+test('a countdown left on screen for three seconds counts as seen', SLOW, async () => {
   await saveOptions({ mode: 'daily' });
   await resetDay();
   await page.goto('https://www.youtube.com/');
-  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
   await sleep(3_400);
   await page.goto('https://www.facebook.com/');
-  await expectNoMoment(page, 'after three seconds on screen');
+  await expectNoCountdown(page, 'after three seconds on screen');
 });
 
-test('a moment that flashes for under a second is released to the next page', SLOW, async () => {
+test('a countdown that flashes for under a second is released to the next page', SLOW, async () => {
   await resetDay();
   await page.goto('https://www.youtube.com/');
-  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
   await page.goto('https://www.facebook.com/');
-  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
   await page.mouse.click(640, 360);
 });
 
@@ -298,7 +298,7 @@ test('a page that redirects on arrival does not eat the day', SLOW, async () => 
   await resetDay();
   await page.goto('https://old.example/');
   await page.waitForURL('https://new.example/', { timeout: 10_000 });
-  await moment(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
   await page.mouse.click(640, 360);
 });
 
@@ -309,7 +309,7 @@ test('the popup shows the numbers', SLOW, async () => {
   const life = computeLife(parseBirth(BIRTH, now), now);
   await popup.locator('#ready').waitFor({ state: 'visible', timeout: 5_000 });
   assert.equal(await popup.locator('#left').textContent(), formatInt(life.left));
-  assert.equal(await popup.locator('#line').textContent(), momentLine(life));
+  assert.equal(await popup.locator('#line').textContent(), countdownLine(life));
   assert.equal(await popup.locator('#strip').isChecked(), true);
   await popup.setViewportSize({ width: 260, height: 240 });
   await shot(popup, '07-popup');

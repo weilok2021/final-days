@@ -12,7 +12,7 @@ function el<T extends HTMLElement>(id: string): T {
 const form = el<HTMLFormElement>('form');
 const birth = el<HTMLInputElement>('birth');
 const strip = el<HTMLInputElement>('strip');
-const moment = el<HTMLInputElement>('moment');
+const countdown = el<HTMLInputElement>('countdown');
 const quiet = el<HTMLInputElement>('quiet');
 const sites = el<HTMLTextAreaElement>('sites');
 const modeDaily = el<HTMLInputElement>('mode-daily');
@@ -45,11 +45,11 @@ async function load(): Promise<void> {
   const settings = await loadSettings();
   birth.value = settings.birth;
   strip.checked = settings.strip;
-  moment.checked = settings.moment;
+  countdown.checked = settings.countdown;
   quiet.value = settings.quietHours;
-  sites.value = settings.momentSites;
-  modeDaily.checked = settings.momentMode === 'daily';
-  modeSites.checked = settings.momentMode === 'sites';
+  sites.value = settings.countdownSites;
+  modeDaily.checked = settings.countdownMode === 'daily';
+  modeSites.checked = settings.countdownMode === 'sites';
   renderPreview();
   if (settings.birth === '') {
     say('Set your date of birth to start.', false);
@@ -67,7 +67,7 @@ async function save(): Promise<void> {
     parseBirth(birth.value, new Date());
     parseHourRanges(quiet.value);
     const list = parseSiteList(sites.value);
-    if (modeSites.checked && list.length === 0) throw new Error('Enter at least one site for the moment to appear on.');
+    if (modeSites.checked && list.length === 0) throw new Error('Enter at least one site for the countdown to appear on.');
   } catch (err) {
     say(err instanceof Error ? err.message : String(err), true);
     return;
@@ -75,16 +75,16 @@ async function save(): Promise<void> {
   await saveSettings({
     birth: birth.value.trim(),
     strip: strip.checked,
-    moment: moment.checked,
+    countdown: countdown.checked,
     quietHours: quiet.value.trim(),
-    momentMode: modeSites.checked ? 'sites' : 'daily',
-    momentSites: sites.value.trim(),
+    countdownMode: modeSites.checked ? 'sites' : 'daily',
+    countdownSites: sites.value.trim(),
   });
   renderPreview();
   say('Saved.', false);
 }
 
 birth.addEventListener('input', renderPreview);
-for (const input of [birth, strip, moment, quiet, sites, modeDaily, modeSites]) input.addEventListener('input', () => say('', false));
+for (const input of [birth, strip, countdown, quiet, sites, modeDaily, modeSites]) input.addEventListener('input', () => say('', false));
 
 void load();

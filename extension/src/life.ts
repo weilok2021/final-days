@@ -54,7 +54,7 @@ export function formatInt(n: number): string {
   return n < 0 ? `-${grouped}` : grouped;
 }
 
-/** The one sentence the moment asks. Ports share this wording. */
+/** The one sentence the countdown asks. Ports share this wording. */
 export function question(left: number): string {
   return `Is today worth one of your remaining ${formatInt(left)} days?`;
 }
@@ -64,8 +64,8 @@ export function tipText(life: Life): string {
   return `Day ${formatInt(life.lived)} of ${formatInt(life.total)} · ${formatInt(life.left)} days left`;
 }
 
-/** The line under the big number on the moment. */
-export function momentLine(life: Life): string {
+/** The line under the big number on the countdown. */
+export function countdownLine(life: Life): string {
   return `days left · day ${formatInt(life.lived)} of ${formatInt(life.total)}`;
 }
 
@@ -168,7 +168,7 @@ export function nextChange(now: Date, ranges: HourRange[]): Date {
 }
 
 /**
- * Parses the "moment only on these sites" list: host names separated by
+ * Parses the "countdown only on these sites" list: host names separated by
  * commas or new lines. A pasted URL is reduced to its host, and a leading
  * "www." is dropped so that every subdomain of the site matches. Empty text
  * gives an empty list. Throws an Error fit for showing to the user.
