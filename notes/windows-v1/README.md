@@ -59,3 +59,6 @@ Checked and found fine: struct sizes and field alignment for WNDCLASSEXW, MSG, P
 Also fixed, on request (compatibility, not security): `SetProcessDpiAwarenessContext` was called through an unguarded `LazyProc.Call`, which panics on Windows 10 before 1703; with `-H windowsgui` the panic is invisible and the app just vanished. Now guarded with `Find()`. The manifest sets per-monitor v2 anyway, so the call only matters for builds made without the winres resources.
 
 Not fixed (not security): `drawText` would panic on a string containing NUL (only program-built strings reach it today). `CoInitializeEx` is never balanced by `CoUninitialize`. The `RegisterHotKey` result is ignored. The workflow pins Go to exactly 1.25.0 through go.mod, so toolchain security patches need a bump.
+
+## Next (decided 2026-09-04)
+- Remove the always-on strip from the Windows app too, in a follow-up branch. The extension dropped its page strip on 2026-09-04: after a few days it no longer registered (the habituation the research brief predicted), and the bar moved into the countdown. On Windows the strip is still the reserved AppBar of SPEC.md section 2; when it goes, the tray menu item, the Ctrl+Alt+F hotkey, the `strip` and `quiet_hours` config keys and section 2 go with it, and the countdown window should carry the bar the way the extension's does. Not done on feature/extension.

@@ -1,25 +1,14 @@
 // Background service worker: the single place that reads settings, computes
 // the numbers, decides whether today's countdown is due, and keeps the toolbar
 // icon current. Content scripts ask it for everything they show.
+import { computeLife, countdownLine, formatInt, localDateString, question, siteListed, type Life } from './life.ts';
 import {
-  computeLife,
-  formatInt,
-  inQuietHours,
-  localDateString,
-  countdownLine,
-  nextChange,
-  question,
-  siteListed,
-  tipText,
-  type Life,
-} from './life.ts';
-import {
+  REMOVED_SYNC_KEYS,
   RENAMED_LOCAL_KEYS,
   RENAMED_SYNC_KEYS,
   loadSettings,
   migrateRenamedKeys,
   resolveSettings,
-  saveSettings,
 } from './settings.ts';
 
 const COUNTDOWN_FOOTER = 'click anywhere to continue';
@@ -32,6 +21,7 @@ chrome.idle.setDetectionInterval(IDLE_SECONDS);
 const storageReady: Promise<void> = Promise.all([
   migrateRenamedKeys(chrome.storage.sync, RENAMED_SYNC_KEYS),
   migrateRenamedKeys(chrome.storage.local, RENAMED_LOCAL_KEYS),
+  chrome.storage.sync.remove([...REMOVED_SYNC_KEYS]),
 ]).then(
   () => undefined,
   (err: unknown) => console.warn('Final Days: storage migration failed', err),
@@ -48,9 +38,6 @@ chrome.storage.onChanged.addListener((_changes, area) => {
 });
 chrome.idle.onStateChanged.addListener((state) => {
   if (state === 'active') void onReturn();
-});
-chrome.commands?.onCommand.addListener((command) => {
-  if (command === 'toggle-strip') void toggleStrip();
 });
 chrome.runtime.onMessage.addListener((message: FdMessage, sender, sendResponse) => {
   if (message?.type === 'countdownLost') {
@@ -82,13 +69,9 @@ async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender
   await storageReady;
   const settings = await loadSettings();
   const resolved = resolveSettings(settings, now);
-  const nextChangeAt = nextChange(now, resolved?.ranges ?? []).getTime();
-  if (!resolved) return { strip: null, countdown: null, countdownDoneFor: today, nextChangeAt };
+  if (!resolved) return { countdown: null, countdownDoneFor: today };
 
   const life = computeLife(resolved.birth, now);
-  const strip: StripView | null = settings.strip
-    ? { fraction: life.fraction, quiet: inQuietHours(resolved.ranges, now), tip: tipText(life) }
-    : null;
 
   // Only a page can show the countdown, so only messages from a tab count. In the
   // sites mode every load of a listed site shows it and nothing is claimed; in
@@ -97,7 +80,7 @@ async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender
   const sitesMode = settings.countdownMode === 'sites';
   const listed = sitesMode ? siteListed(resolved.sites, message.host) : true;
   const force = message.countdown === 'force';
-  const wantsCountdown = sender.tab !== undefined && message.countdown !== 'none' && (listed || force);
+  const wantsCountdown = sender.tab !== undefined && (listed || force);
   let countdown: CountdownView | null = null;
   if (wantsCountdown && (force || settings.countdown)) {
     if (force) {
@@ -111,7 +94,7 @@ async function hello(message: HelloMessage, sender: chrome.runtime.MessageSender
     }
   }
   const done = wantsCountdown || !settings.countdown || !listed || (!sitesMode && (await shownOn(today)));
-  return { strip, countdown, countdownDoneFor: done ? today : '', nextChangeAt };
+  return { countdown, countdownDoneFor: done ? today : '' };
 }
 
 function countdownView(life: Life, token: string): CountdownView {
@@ -234,11 +217,6 @@ async function promptActiveTab(force: boolean): Promise<boolean> {
   }
 }
 
-async function toggleStrip(): Promise<void> {
-  const settings = await loadSettings();
-  await saveSettings({ strip: !settings.strip });
-}
-
 // ---- toolbar icon and tooltip -------------------------------------------------
 
 /** Local date the icon and tooltip were last drawn for. */
@@ -263,7 +241,7 @@ async function refreshAction(): Promise<void> {
   }
 }
 
-/** Draws the toolbar icon as a miniature of the strip, the same tile as the Windows tray icon. */
+/** Draws the toolbar icon as a miniature life bar, the same tile as the Windows tray icon. */
 async function drawIcon(fraction: number): Promise<void> {
   if (typeof OffscreenCanvas === 'undefined') return;
   const imageData: Record<number, ImageData> = {};

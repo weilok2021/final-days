@@ -9,9 +9,9 @@ the days you have left?
 
 Final Days keeps that number in front of you:
 
-- **The strip.** A 4-pixel bar along the top edge of the screen, filled from the
-  left as life passes, green through yellow to red. Hover it for the numbers. It
-  never moves, never blinks, never asks for anything.
+- **The strip** (Windows). A 4-pixel bar along the top edge of the screen,
+  filled from the left as life passes, green through yellow to red. Hover it
+  for the numbers. It never moves, never blinks, never asks for anything.
 - **The countdown.** Once a day, the first time you come back, the screen goes dark
   and shows how many days you have left. One click and it is gone.
 
@@ -83,22 +83,24 @@ time by `go-winres`.
 
 Nothing runs outside the browser, so it works on machines where you cannot run
 your own programs. The numbers, colours, wording and the once-a-day rule are
-the same as on Windows; three things are necessarily different:
+the same as on Windows; three things are different:
 
-- The strip is drawn over the top 4 px of every web page. A web page cannot
-  reserve screen space, so a page's own top edge sits under it.
+- There is no strip. Over a web page a bar at the edge stops registering
+  within days, and a page cannot reserve screen space for it, so the
+  extension draws nothing between countdowns; the bar is part of the
+  countdown instead.
 - The countdown covers the current tab, not the whole screen. "The first time you
   come back" is the first page you look at each day, or the first time the
   browser sees you return after a lock or five idle minutes. Or switch it to
   a list of sites (YouTube, the social sites): it then shows up every time you
   open one of them and nowhere else, so it stays off work pages and shared
   screens.
-- Neither can appear on the browser's own pages (settings, new tab, the
+- It cannot appear on the browser's own pages (settings, new tab, the
   extension store) or on PDFs, because extensions are kept out of those.
 
-It asks for two permissions: access to all sites, which it needs to draw the
-bar (it reads nothing from pages and never touches the network), and idle
-detection, to notice when you come back. Your date of birth is kept in the
+It asks for two permissions: access to all sites, which it needs to show the
+countdown on the page you are looking at (it reads nothing from pages and
+never touches the network), and idle detection, to notice when you come back. Your date of birth is kept in the
 browser's extension storage and follows your profile if browser sync is on.
 
 ### Install it
@@ -114,11 +116,9 @@ The extension is not on a store yet, so it loads "unpacked" from a folder:
    click **Load unpacked** and choose the folder.
 3. The options page opens. Enter your date of birth and save.
 
-Pin the icon from the toolbar's extensions menu: it shows the bar in
-miniature, and its popup has the numbers, **Show the countdown** and the bar
-switch. `Alt+Shift+F` also toggles the bar (changeable at
-`chrome://extensions/shortcuts`). Quiet hours and the countdown's mode are on
-the options page.
+Pin the icon from the toolbar's extensions menu: it shows your life as a
+miniature bar, and its popup has the numbers, **Show the countdown** and a
+link to the options, where the countdown's mode is set.
 
 ### Build it yourself
 
@@ -148,7 +148,7 @@ request itself with a small fake page, so it never touches the network.
   C toolchain. The strip is a registered AppBar; the countdown is a plain top-level
   window; the tray icon is drawn at runtime as a miniature of the strip.
 - `extension/` is the browser implementation in TypeScript (Manifest V3). A
-  content script draws the strip and the countdown on each page; a background
+  content script shows the countdown on the page; a background
   worker owns the settings, the numbers and the once-a-day rule; the options
   page and popup are plain HTML.
 - `design/` holds the interactive mockup the design was chosen from, and `notes/`

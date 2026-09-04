@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Final Days",
   "version": "0.1.0",
-  "description": "Every day left is one of your final days. A 4 px life bar at the top of every page and, once a day, the number of days you have left.",
+  "description": "Every day left is one of your final days. Once a day, the page goes dark and shows how many days you have left.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon-16.png",
@@ -29,16 +29,17 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start"
     }
   ],
-  "permissions": ["storage", "idle"],
-  "commands": {
-    "toggle-strip": {
-      "suggested_key": { "default": "Alt+Shift+F" },
-      "description": "Toggle the life bar"
-    }
-  }
+  "permissions": [
+    "storage",
+    "idle"
+  ]
 }

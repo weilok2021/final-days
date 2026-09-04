@@ -2,7 +2,7 @@
   "name": "final-days-extension",
   "version": "0.1.0",
   "private": true,
-  "description": "Final Days for Chrome and Edge: a 4 px life bar on every page and a once-a-day reminder of the days you have left.",
+  "description": "Final Days for Chrome and Edge: once a day, the page goes dark and shows how many days you have left.",
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-static.mjs",

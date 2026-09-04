@@ -2,7 +2,7 @@
 // popup. Declared globally (no imports or exports) so the content script,
 // which is a classic script with no module imports, can use them too.
 
-/** Content script to background: "here is what I need right now". */
+/** Content script to background: "should this page show the countdown now?" */
 interface HelloMessage {
   type: 'hello';
   /** Random id of the sending document, so a claim can be tied to the page that asked for it. */
@@ -10,11 +10,10 @@ interface HelloMessage {
   /** The page's host name, matched against the countdown's site list. */
   host: string;
   /**
-   * none: just the strip (page load in a background tab, a timer tick).
-   * check: also show the countdown if it has not been shown yet.
-   * force: show the countdown now regardless (strip click, popup button).
+   * check: show today's countdown if it has not been shown yet.
+   * force: show the countdown now regardless (popup button).
    */
-  countdown: 'none' | 'check' | 'force';
+  countdown: 'check' | 'force';
 }
 
 /** Background or popup to content script: run a countdown check now. */
@@ -37,12 +36,6 @@ interface CountdownLostMessage {
 
 type FdMessage = HelloMessage | CountdownPromptMessage | CountdownLostMessage;
 
-interface StripView {
-  fraction: number;
-  quiet: boolean;
-  tip: string;
-}
-
 interface CountdownView {
   /** The claim token for the daily countdown; "" for a forced show, which is never released. */
   token: string;
@@ -54,12 +47,8 @@ interface CountdownView {
 }
 
 interface HelloReply {
-  /** Null when the strip is off or the date of birth is not set. */
-  strip: StripView | null;
   /** Non-null exactly when the content script should show the countdown now. */
   countdown: CountdownView | null;
   /** Local date ("YYYY-MM-DD") for which no further countdown checks are needed, or "". */
   countdownDoneFor: string;
-  /** Epoch milliseconds of the next time the strip may change. */
-  nextChangeAt: number;
 }
