@@ -134,14 +134,50 @@ async function readState(): Promise<CountdownState> {
 }
 
 // A page can die between asking and being answered (a redirect on arrival is
-// the common case). These two records, kept for the life of this worker
-// instance, let such an answer be undone or refused.
+// the common case). Two records let such an answer be undone or refused. They
+// live in chrome.storage.session, which outlives this worker (it is shut down
+// after about 30 s without events) and is cleared when the browser closes.
 
 /** The last daily claim: which document got it, its token, and when. */
-let lastClaim: { doc: string; token: string; at: number } | null = null;
-/** Documents that reported dying with a check unanswered, by the time they said so. */
-const abandoned = new Map<string, number>();
-const ABANDON_WINDOW_MS = 60_000;
+interface Claim {
+  doc: string;
+  token: string;
+  at: number;
+}
+
+interface ClaimBook {
+  lastClaim: Claim | null;
+  /** Documents that reported dying with a check unanswered, by the time they said so. */
+  abandoned: Record<string, number>;
+}
+
+/** A claim or an abandoned-page record older than this matches nothing any more. */
+const CLAIM_WINDOW_MS = 60_000;
+
+/** The records, with anything older than the window already dropped. */
+async function readBook(): Promise<ClaimBook> {
+  const raw = await chrome.storage.session.get({ lastClaim: null, abandoned: {} });
+  const cutoff = Date.now() - CLAIM_WINDOW_MS;
+  const book: ClaimBook = { lastClaim: null, abandoned: {} };
+  const claim: unknown = raw.lastClaim;
+  if (claim && typeof claim === 'object') {
+    const { doc, token, at } = claim as Partial<Claim>;
+    if (typeof doc === 'string' && typeof token === 'string' && typeof at === 'number' && at >= cutoff) {
+      book.lastClaim = { doc, token, at };
+    }
+  }
+  const abandoned: unknown = raw.abandoned;
+  if (abandoned && typeof abandoned === 'object') {
+    for (const [doc, at] of Object.entries(abandoned as Record<string, unknown>)) {
+      if (typeof at === 'number' && at >= cutoff) book.abandoned[doc] = at;
+    }
+  }
+  return book;
+}
+
+async function writeBook(book: ClaimBook): Promise<void> {
+  await chrome.storage.session.set(book);
+}
 
 /**
  * Marks today as shown and returns the claim token, or null when today was
@@ -150,13 +186,19 @@ const ABANDON_WINDOW_MS = 60_000;
  */
 function claimCountdown(today: string, force: boolean, doc: string): Promise<string | null> {
   return serial(async () => {
-    forgetOldAbandons();
-    if (abandoned.delete(doc)) return null; // the page died before hearing this answer
+    const book = await readBook();
+    if (doc in book.abandoned) {
+      // the page died before hearing this answer
+      delete book.abandoned[doc];
+      await writeBook(book);
+      return null;
+    }
     const state = await readState();
     if (!force && state.lastCountdown === today) return null;
     const token = force ? '' : crypto.randomUUID();
     await chrome.storage.local.set({ lastCountdown: today, countdownToken: token });
-    lastClaim = force ? null : { doc, token, at: Date.now() };
+    book.lastClaim = force ? null : { doc, token, at: Date.now() };
+    await writeBook(book);
     return token;
   });
 }
@@ -164,28 +206,28 @@ function claimCountdown(today: string, force: boolean, doc: string): Promise<str
 /**
  * The page went away before anyone saw the countdown: give the day back. With
  * the empty token the page died with its check unanswered; if the answer
- * already claimed the day for it, undo that, otherwise make sure it cannot.
+ * already claimed the day for it (within the window), undo that, otherwise
+ * make sure it cannot.
  */
 function releaseCountdown(doc: string, token: string): Promise<void> {
   return serial(async () => {
-    forgetOldAbandons();
+    const book = await readBook();
     if (token === '') {
-      if (lastClaim?.doc !== doc) {
-        abandoned.set(doc, Date.now());
+      if (book.lastClaim?.doc !== doc) {
+        book.abandoned[doc] = Date.now();
+        await writeBook(book);
         return;
       }
-      token = lastClaim.token;
+      token = book.lastClaim.token;
     }
     const state = await readState();
     if (state.countdownToken !== token) return; // a different claim owns the day now
     await chrome.storage.local.remove(['lastCountdown', 'countdownToken']);
-    if (lastClaim?.token === token) lastClaim = null;
+    if (book.lastClaim?.token === token) {
+      book.lastClaim = null;
+      await writeBook(book);
+    }
   });
-}
-
-function forgetOldAbandons(): void {
-  const cutoff = Date.now() - ABANDON_WINDOW_MS;
-  for (const [doc, at] of abandoned) if (at < cutoff) abandoned.delete(doc);
 }
 
 async function shownOn(day: string): Promise<boolean> {
