@@ -1,7 +1,8 @@
 // Content script: the daily countdown overlay. It is a classic script (no
 // imports) and computes nothing itself: everything it shows arrives from the
 // background worker in one message, so the numbers and wording live in
-// exactly one place (life.ts). Between countdowns it draws nothing.
+// exactly one place (life.ts). Between countdowns it draws nothing; the life
+// bar is part of the countdown, under the number.
 (() => {
   const docRoot = document.documentElement;
   if (!(docRoot instanceof HTMLElement)) return; // XML, SVG and other non-HTML documents
@@ -62,7 +63,7 @@
     adopt(
       shadow,
       `.root{all:initial;position:absolute;top:0;left:0;right:0;bottom:0;background:#0b0d12;color:#fff;font-family:${FONT};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:default;user-select:none;-webkit-user-select:none}
-.bar{position:absolute;top:0;left:0;right:0;height:3px;background:${GRADIENT}}
+.bar{position:relative;width:60vw;height:6px;margin-top:3.2vh;background:${GRADIENT};overflow:hidden}
 .rest{position:absolute;top:0;bottom:0;right:0;background:#27272a}
 .big{font-size:16vh;font-weight:600;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:#fff}
 .line{margin-top:1.6vh;font-size:max(2vh,13px);color:#a1a1aa}
@@ -70,7 +71,7 @@
 .foot{position:absolute;bottom:4vh;left:0;right:0;font-size:max(1.2vh,11px);color:#52525b}`,
     );
     shadow.innerHTML =
-      '<div class="root"><div class="bar"><div class="rest"></div></div><div class="big"></div><div class="line"></div><div class="q"></div><div class="foot"></div></div>';
+      '<div class="root"><div class="big"></div><div class="bar"><div class="rest"></div></div><div class="line"></div><div class="q"></div><div class="foot"></div></div>';
     const text = (selector: string, value: string) => {
       shadow.querySelector<HTMLElement>(selector)!.textContent = value;
     };

@@ -47,9 +47,10 @@ async function shot(page: Page, name: string): Promise<void> {
   await page.screenshot({ path: join(SHOTS, `${name}.png`) });
 }
 
-/** Colour of one pixel of the page. Decodes the 1x1 PNG by hand: for the first pixel every PNG filter is the identity. */
-async function pixel(page: Page, x: number, y: number): Promise<[number, number, number]> {
-  const png = await page.screenshot({ clip: { x, y, width: 1, height: 1 } });
+type Rgb = [number, number, number];
+
+/** The concatenated image data of a PNG, still deflated. */
+function imageData(png: Buffer): Buffer {
   const idat: Buffer[] = [];
   let pos = 8;
   while (pos < png.length) {
@@ -58,17 +59,51 @@ async function pixel(page: Page, x: number, y: number): Promise<[number, number,
     if (type === 'IDAT') idat.push(png.subarray(pos + 8, pos + 8 + len));
     pos += 12 + len;
   }
-  const raw = inflateSync(Buffer.concat(idat));
+  return inflateSync(Buffer.concat(idat));
+}
+
+/** Colour of one pixel of the page. Decodes the 1x1 PNG by hand: for the first pixel every PNG filter is the identity. */
+async function pixel(page: Page, x: number, y: number): Promise<Rgb> {
+  const raw = imageData(await page.screenshot({ clip: { x, y, width: 1, height: 1 } }));
   return [raw[1] ?? 0, raw[2] ?? 0, raw[3] ?? 0];
 }
 
-function assertColour(actual: [number, number, number], hex: string, what: string, tolerance = 14): void {
+/**
+ * Colours of a 1 px wide column of the page, top to bottom. Decoded by hand
+ * too: at width 1 the Sub filter is the identity and the other three filters
+ * need only the row above (Paeth reduces to Up when there is no left pixel).
+ */
+async function column(page: Page, x: number, y: number, height: number): Promise<Rgb[]> {
+  const png = await page.screenshot({ clip: { x, y, width: 1, height } });
+  const bpp = png[25] === 6 ? 4 : 3; // IHDR colour type: RGBA or RGB, 8 bits per sample
+  const raw = imageData(png);
+  const rows: Rgb[] = [];
+  let above = [0, 0, 0, 0];
+  for (let r = 0; r < height; r++) {
+    const filter = raw[r * (bpp + 1)] ?? 0;
+    const row = [0, 0, 0, 0];
+    for (let i = 0; i < bpp; i++) {
+      const up = above[i] ?? 0;
+      const predicted = filter === 2 || filter === 4 ? up : filter === 3 ? up >> 1 : 0;
+      row[i] = ((raw[r * (bpp + 1) + 1 + i] ?? 0) + predicted) & 0xff;
+    }
+    rows.push([row[0] ?? 0, row[1] ?? 0, row[2] ?? 0]);
+    above = row;
+  }
+  return rows;
+}
+
+function hexOf(c: Rgb): string {
+  return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function near(actual: Rgb, hex: string, tolerance = 14): boolean {
   const want = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  const off = actual.map((v, i) => Math.abs(v - (want[i] ?? 0)));
-  assert.ok(
-    off.every((d) => d <= tolerance),
-    `${what}: expected about ${hex}, got #${actual.map((v) => v.toString(16).padStart(2, '0')).join('')}`,
-  );
+  return actual.every((v, i) => Math.abs(v - (want[i] ?? 0)) <= tolerance);
+}
+
+function assertColour(actual: Rgb, hex: string, what: string, tolerance = 14): void {
+  assert.ok(near(actual, hex, tolerance), `${what}: expected about ${hex}, got ${hexOf(actual)}`);
 }
 
 const state = () => options.evaluate(() => chrome.storage.local.get(null));
@@ -160,8 +195,21 @@ test('the first countdown of the day appears on the first page', SLOW, async () 
   assert.deepEqual(box, { x: 0, y: 0, width: VIEWPORT.width, height: VIEWPORT.height });
   await shot(page, '02-countdown');
   assertColour(await pixel(page, 100, 100), '#0b0d12', 'countdown background');
-  assertColour(await pixel(page, 5, 1), '#16a34a', 'countdown bar, lived end');
-  assertColour(await pixel(page, 1275, 1), '#27272a', 'countdown bar, remainder');
+  assertColour(await pixel(page, 5, 1), '#0b0d12', 'top edge: no strip there any more');
+  assertColour(await pixel(page, 640, 2), '#0b0d12', 'top edge, middle');
+  // The bar sits under the number: 6 px tall, 60 % of the viewport wide (x 256 to 1024),
+  // green at its left end for a life about a third lived, grey for the rest.
+  const rows = await column(page, 260, 0, VIEWPORT.height);
+  const green = rows.map((c, y) => (near(c, '#16a34a') ? y : -1)).filter((y) => y >= 0);
+  assert.ok(green.length >= 5 && green.length <= 7, `bar height: ${green.length} green rows at x=260`);
+  const barTop = green[0]!;
+  const barBottom = green[green.length - 1]!;
+  assert.equal(barBottom - barTop + 1, green.length, 'the green rows should be one contiguous bar');
+  assert.ok(barTop > 250 && barBottom < 470, `bar rows ${barTop} to ${barBottom} should sit under the number`);
+  const y = Math.floor((barTop + barBottom) / 2);
+  assertColour(await pixel(page, 1020, y), '#27272a', 'bar, remainder');
+  assertColour(await pixel(page, 250, y), '#0b0d12', 'left of the bar');
+  assertColour(await pixel(page, 1030, y), '#0b0d12', 'right of the bar');
 
   const s = await state();
   assert.equal(s['lastCountdown'], localDateString(new Date()));
