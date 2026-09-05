@@ -1,10 +1,9 @@
 # extension
 
-**Branch:** feature/extension
-**Worktree:** .worktrees/feature-extension
+**Branch:** feature/extension, merged into main as PR #1 on 2026-09-04. The worktree `.worktrees/feature-extension` can go once Chrome loads from the main checkout.
 **Started:** 2026-09-03
 **Issue:** none (GitHub PR only)
-**Open the PR here:** https://github.com/weilok2021/final-days/compare/main...feature/extension?expand=1
+**Fixes since the merge:** feature/fix-worker-start (2026-09-05, "Fix round" below)
 
 ## What this is
 The browser-extension port of Final Days for Chrome and Edge (Manifest V3, TypeScript): once a day, or every time a listed site opens, the page goes dark and shows the days left with the life bar under the number. It exists because the Go exe was flagged by SentinelOne on the managed work laptop; nothing here runs outside the browser. Until 2026-09-04 it also drew the 4 px bar on every page; see the decisions of that day.
@@ -53,13 +52,15 @@ The browser-extension port of Final Days for Chrome and Edge (Manifest V3, TypeS
 ## Load it on the work PC (Chrome or Edge)
 The built folder is already on disk in WSL. In Chrome: open chrome://extensions, turn on Developer mode (top right), click Load unpacked, and paste this path into the folder dialog:
 
-    \\wsl.localhost\Ubuntu\home\weilok\workspace\remaining-life\.worktrees\feature-extension\extension\dist
+    \\wsl.localhost\Ubuntu\home\weilok\workspace\remaining-life\extension\dist
+
+An unpacked extension's id comes from its folder path, so loading from a new folder is a fresh install with empty storage: remove the old card first (two copies would each show a countdown), and enter the date of birth again.
 
 Edge: edge://extensions, Developer mode (left column), Load unpacked, same path.
 
 If the browser refuses the network path ("Manifest file is missing or unreadable" or similar), copy the folder to the Windows side and load that instead:
 
-    cp -r ~/workspace/remaining-life/.worktrees/feature-extension/extension/dist /mnt/c/Users/weilok.chia/final-days-extension
+    cp -r ~/workspace/remaining-life/extension/dist /mnt/c/Users/weilok.chia/final-days-extension
 
 After code changes: `cd extension && npm run build`, then the reload arrow on the extension's card. Tabs that were already open keep the old content script until they are reloaded. After the 2026-09-04 rebuild, reopen Options: the settings saved under the old names should appear under the new ones (the worker migrates them when it starts).
 
@@ -70,7 +71,7 @@ To reset the once-a-day state for testing: on chrome://extensions click the exte
 ## Manual test checklist (work PC)
 `QA-CHECKLIST.md` next to this file is the pass/fail copy (gitignored by the workflow). The end-to-end suite covers everything below except what needs a real desktop: lock and unlock and the idle return (6), the real toolbar icon and tooltip (4), loading from the WSL path (1), the migration of real stored settings (2), and real sites' own page code.
 
-1. Load unpacked as above (or click the reload arrow after the rebuild). Expect the card "Final Days 0.1.0" with no Errors button.
+1. Load unpacked as above (or click the reload arrow after the rebuild). Expect the card "Final Days 0.1.0" with no Errors button, and no error in the console behind the card's "service worker" link.
 2. Open Options. Expect the date of birth still set, "The countdown" ticked, the mode and site list as before the rename, and no Life bar or Quiet hours fields. Save: "Saved." and the preview "Day N of 29,220 · X days left".
 3. Open any web page. Expect nothing drawn on it. Reset the state (console line above) and reload: the countdown appears: dark full-tab overlay, the days-left number very large, the bar under it (6 px, about 60 % of the width, green from the left, dark grey for what is left), "days left · day N of 29,220", the question, "click anywhere to continue". Nothing along the top edge. Click or press a key: gone. Reload, open other pages, switch tabs: no second countdown today.
 4. Pin the toolbar icon (extensions menu). Expect the dark tile with the bar, tooltip "Final Days · X days left". The popup shows the number, the day count, Show the countdown (shows it again now, with the bar) and Options; no switch. On chrome://extensions or the new tab, Show the countdown must explain it needs a web page.
@@ -91,6 +92,14 @@ Security review: nothing above Low. Code review: three Mediums and a tail of Low
 - Lows left alone, with reasons: a hostile page dismissing the overlay with synthetic events (it can remove the element outright, and nothing is exposed); a midnight alarm for the toolbar icon (needs the alarms permission; the worker redraws on its first event of the morning); sharing the icon geometry with scripts/mkicon.mjs (a Node rasteriser, not a canvas); `.then` chains where the Chrome guidance prefers async/await (style); Web Store obligations (per-permission justifications, a privacy policy for the date of birth in sync storage) until a listing starts.
 - Follow-up from the reviewer on the fixes, done in the same implementing session: (1) the once-per-page-load memory was a plain flag, so a tab kept open overnight never asked for the next day's countdown by itself (page loads and the unlock prompt still brought it, late); it is now the local date it was shown on. (2) The daily half of the new scenario saved an unchanged value, which raises no storage event; it now saves a real change. (3) A release now records the departed page as abandoned in every branch, so a check that was in flight while its countdown was up cannot re-take the day after the release.
 - The reviewer installed Google's chrome-extensions guidance as a skill under `.claude/skills/chrome-extensions/` in the project root. Decision: `.claude/` is git-ignored (this branch's .gitignore and `.git/info/exclude`), so the skill stays on disk for sessions and never enters the repository. The reviewer also pointed origin/HEAD at main, which is repo metadata only.
+
+## Fix round (2026-09-05, retest from main on the work PC)
+- Found by the user in the service worker console at start: `Uncaught (in promise) ReferenceError: Cannot access 'actionDate' before initialization at refreshAction (background.js:241) at background.js:46`. Cause: the worker calls `refreshAction()` at top level while the module is still being evaluated, and that function assigns `actionDate` before its first `await`; the `let actionDate` sat further down the file, in the temporal dead zone at that moment. Every worker start rejected: an Errors button on the card, and the tooltip and icon not refreshed at start until the first hello or an install. The once-a-day rule was untouched. Introduced by 82a28a9 (the 2026-09-03 review fix that added `actionDate`) under a start-up call that dates from 9751ecb.
+- Fix (feature/fix-worker-start): the declaration moved above the start-up call, with a comment on why it must stay there. Verified in the worktree: check, 14 unit tests, build, 14 Playwright scenarios.
+- Why the suite missed it: it never looks at the worker's errors; Playwright's context `console` and `weberror` events carried nothing from the service worker when tried (Playwright 1.62.1), and on install `firstRun` sets the title a moment later, so the tooltip looked right. New regression test `test/background.test.ts`: it imports the real worker module in Node with a recording Proxy standing in for `chrome`, then asserts no unhandled rejection and exactly one `chrome.action.setTitle` call. It runs in the normal `npm test` and takes about 20 ms; it is the seam for any future start-up error in the worker.
+- Reproduction technique, for next time: the same stub in a throwaway script (`globalThis.chrome = proxy; process.on('unhandledRejection', record); await import('dist/background.js')`) reproduces a worker start in milliseconds, on the source or the built file.
+- Prevention: module state the start-up path touches must be declared above the start-up call. `claimChain` (the daily claim serialiser) is still declared mid-file; nothing at start touches it, and the test would fail if that changed.
+- Checklist status at the time of the fix: the user had done a light pass ("a few clicks, looks fine") and hit the error while opening the console for the reset step. Still to run on the desktop after the merge: the reload with a clean console (1), toolbar icon and tooltip and the popup hint on chrome pages (4), the shortcuts page (5), the two storage reads (7), lock and unlock (8), and the switch to the main path (10).
 
 ## Loose ends
 - The review-round fixes have had their own tests but not a second independent review. If one is wanted, it is a fresh-session job again: `code-review` at low or medium, scope extension/ only.
