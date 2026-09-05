@@ -55,6 +55,11 @@ chrome.runtime.onMessage.addListener((message: FdMessage, sender, sendResponse) 
   return true; // the reply is asynchronous
 });
 
+/** Local date the icon and tooltip were last drawn for. Declared above the start-up call below:
+ *  that call runs while this module is still being evaluated, so a `let` further down the file
+ *  would not exist yet and the refresh would throw. test/background.test.ts guards this. */
+let actionDate = '';
+
 void refreshAction();
 
 /** On install, update or reload: drops retired settings and opens the options page until a date of birth has been set. */
@@ -272,9 +277,6 @@ async function promptActiveTab(force: boolean): Promise<boolean> {
 }
 
 // ---- toolbar icon and tooltip -------------------------------------------------
-
-/** Local date the icon and tooltip were last drawn for. */
-let actionDate = '';
 
 async function refreshAction(): Promise<void> {
   const now = new Date();
