@@ -7,69 +7,102 @@ thousands. Written down, the real number is small enough to be frightening, and
 frightening enough to be useful: whatever you are doing today, is it worth one of
 the days you have left?
 
-Final Days keeps that number in front of you:
+Final Days is a small add-on for the Chrome and Edge browsers that keeps that
+number in front of you. You enter one thing, your date of birth. Lifespan is
+fixed at 80 years, which is 29,220 days.
 
-- **The strip** (Windows). A 4-pixel bar along the top edge of the screen,
-  filled from the left as life passes, green through yellow to red. Hover it
-  for the numbers. It never moves, never blinks, never asks for anything.
-- **The countdown.** Once a day, the first time you come back, the screen goes dark
-  and shows how many days you have left. One click and it is gone.
+## What it does
 
-Lifespan is fixed at 80 years (29,220 days). The only thing you enter is your date
-of birth.
-
-It is a **browser extension** for Chrome and Edge. A **Windows app** that
-follows the same behaviour spec is on its way (see below).
-
-## Windows app (pending)
-
-A native Windows app in Go, with the strip as a reserved bar along the top of
-the screen and the countdown at the first unlock of the day, is on the
-`feature/windows-v1` branch and not merged yet. Its download, config file and
-antivirus notes arrive with it.
-
-## Browser extension (Chrome and Edge)
-
-Nothing runs outside the browser, so it works on machines where you cannot run
-your own programs. The numbers, colours, wording and the once-a-day rule are
-the same as on Windows; three things are different:
-
-- There is no strip. Over a web page a bar at the edge stops registering
-  within days, and a page cannot reserve screen space for it, so the
-  extension draws nothing between countdowns; the bar is part of the
-  countdown instead.
-- The countdown covers the current tab, not the whole screen. "The first time you
-  come back" is the first page you look at each day, or the first time the
-  browser sees you return after a lock or five idle minutes. Or switch it to
-  a list of sites (YouTube, the social sites): it then shows up every time you
-  open one of them and nowhere else, so it stays off work pages and shared
+- **The countdown.** Once a day, the first time you come back to your browser,
+  the page you are looking at goes dark and shows how many days you have left,
+  with your life drawn as a bar under the number. One click and it is gone.
+  It never comes back until tomorrow.
+- **Or only on chosen sites.** In the options you can switch it to a list of
+  sites, for example YouTube or the social sites. It then shows up every time
+  you open one of them and nowhere else, so it stays off work pages and shared
   screens.
-- It cannot appear on the browser's own pages (settings, new tab, the
-  extension store) or on PDFs, because extensions are kept out of those.
+- **The toolbar icon.** The icon shows your life as a tiny bar. Click it to see
+  the numbers, show the countdown right now, or open the options.
 
-It asks for two permissions: access to all sites, which it needs to show the
-countdown on the page you are looking at (it reads nothing from pages and
-never touches the network), and idle detection, to notice when you come back. Your date of birth is kept in the
-browser's extension storage and follows your profile if browser sync is on.
+It works only inside the browser. It does not appear over other programs or on
+the desktop, and it cannot appear on the browser's own pages (settings, the new
+tab page, the extension store) or on PDFs, because browsers keep add-ons out of
+those.
 
-### Install it
+## Install it
 
-The extension is not on a store yet, so it loads "unpacked" from a folder:
+You need Chrome or Edge on a computer. It takes about two minutes.
 
-1. Get the folder: download `final-days-extension.zip` from the latest
-   [release](https://github.com/weilok2021/final-days/releases) and unzip it,
-   or build it yourself (below).
-2. **Chrome:** open `chrome://extensions`, turn on **Developer mode** (top
-   right), click **Load unpacked** and choose the folder.
-   **Edge:** open `edge://extensions`, turn on **Developer mode** (left column),
-   click **Load unpacked** and choose the folder.
-3. The options page opens. Enter your date of birth and save.
+1. **Download the add-on.** Go to the
+   [latest release](https://github.com/weilok2021/final-days/releases/latest)
+   and download `final-days-extension.zip`. Unzip it. You get a folder with a
+   file called `manifest.json` inside.
+2. **Put the folder somewhere permanent**, for example in your Documents
+   folder. The browser reads from this folder every time it starts, so do not
+   delete it and try not to move it later (moving it means entering your date
+   of birth again).
+3. **Open the extensions page.** In Chrome, type `chrome://extensions` in the
+   address bar and press Enter. In Edge, type `edge://extensions`.
+4. **Turn on Developer mode.** In Chrome it is a switch at the top right of the
+   page. In Edge it is a switch in the left column.
+5. **Click "Load unpacked"** and choose the folder from step 1.
+6. **Enter your date of birth.** The options page opens by itself. Type your
+   date of birth and click Save. That is it.
 
-Pin the icon from the toolbar's extensions menu: it shows your life as a
-miniature bar, and its popup has the numbers, **Show the countdown** and a
-link to the options, where the countdown's mode is set.
+Optional: pin the icon so you can see it. Click the puzzle-piece button on the
+right of the address bar and click the pin next to Final Days.
 
-### Build it yourself
+**Why "Developer mode"?** Browsers install add-ons with one click only from
+their own store. Final Days is not in a store yet, so the browser loads it from
+a folder instead, and it calls that Developer mode. It is the same add-on either
+way, and nothing else about your browser changes. If Final Days goes into the
+store later, this step goes away.
+
+## Update it
+
+When a new version comes out:
+
+1. Download the new `final-days-extension.zip` from the
+   [latest release](https://github.com/weilok2021/final-days/releases/latest).
+2. Unzip it into the same folder as before, replacing the old files.
+3. On the extensions page, find the Final Days card and click its reload
+   button (the circular arrow).
+
+Because the folder is the same, your date of birth and settings stay.
+
+## Remove it
+
+On the extensions page, click Remove on the Final Days card. Then delete the
+folder. Nothing else is left behind.
+
+## Privacy
+
+Nothing leaves your browser. There is no account, no sign-in and no server.
+
+- Your date of birth is kept in the browser's own storage for add-ons. If you
+  sign in to your browser and have sync on, it follows your profile to your
+  other computers, the same way your bookmarks do.
+- The add-on asks for two permissions when it installs. **Access to all
+  sites**: it needs this to draw the countdown over whatever page you are
+  looking at. It reads nothing from the page and changes nothing on it. **Idle
+  detection**: this is how it notices that you came back after a break or after
+  unlocking your computer.
+- It never connects to the internet.
+
+## Questions or problems
+
+Open an issue on the
+[issues page](https://github.com/weilok2021/final-days/issues) and describe
+what you saw.
+
+## For developers
+
+The add-on lives in `extension/`, written in TypeScript for Manifest V3. A
+content script shows the countdown on the page, a background worker owns the
+settings, the numbers and the once-a-day rule, and the options page and popup
+are plain HTML. `SPEC.md` defines the behaviour every version follows.
+`design/` holds the mockups the design was chosen from and `notes/` the
+decision log of each feature.
 
 You need Node 22.18 or later (24 is what it is built with).
 
@@ -88,23 +121,12 @@ end-to-end suite uses Playwright: run `npx playwright install chromium` once
 or just `libnss3`, `libnspr4` and `libasound2`). It answers every website
 request itself with a small fake page, so it never touches the network.
 
-## How it is built
+Releases are built by GitHub Actions: pushing a tag such as `v0.1.0` runs the
+checks, zips `extension/dist` and attaches it to a release together with a
+SHA-256 checksum file.
 
-- `SPEC.md` defines the behaviour: the numbers, colours, wording and triggers,
-  plus what each port does where its platform cannot follow them exactly. Any
-  port follows it, so a macOS version would match these two.
-- `windows/`, on the `feature/windows-v1` branch, is the Windows implementation
-  in Go, calling Win32 directly with no C toolchain. The strip is a registered
-  AppBar; the countdown is a plain top-level window; the tray icon is drawn at
-  runtime as a miniature of the strip.
-- `extension/` is the browser implementation in TypeScript (Manifest V3). A
-  content script shows the countdown on the page; a background
-  worker owns the settings, the numbers and the once-a-day rule; the options
-  page and popup are plain HTML.
-- `design/` holds the interactive mockups the design was chosen from, and
-  `notes/` the decision log of each feature. The research behind the design
-  (reference products, the habituation studies that shaped the once-a-day rule,
-  the life tables) is with the Windows branch for now.
+A native Windows app that follows the same specification is on the
+`feature/windows-v1` branch and is not finished yet.
 
 ## Licence
 
