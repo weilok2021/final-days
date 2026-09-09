@@ -20,6 +20,11 @@ So I made Final Days. It is a Chrome and Edge extension. You enter your date of
 birth, and it uses an 80-year lifespan: 29,220 days. Once a day, the first time
 you come back to your browser, it shows the number of days you have left.
 
+![A web page goes dark and shows 19,472 days left, with a life bar under the number. A click brings the page back.](design/demo/demo.gif)
+
+The [screenshot](design/demo/countdown-1280x800.png) and a
+[short video with music](design/demo/demo-music.mp4) are in `design/demo/`.
+
 ## What it does
 
 - The page goes dark and shows the days left, with your life drawn as a bar
@@ -81,6 +86,9 @@ npm run e2e
 The build writes the unpacked extension to `extension/dist`. The end-to-end
 tests use Playwright; install its Chromium browser once with
 `npx playwright install chromium`.
+
+`npm run demo` re-records the demo video, GIF and screenshot in `design/demo/`
+from the built extension, for use after a change to how the countdown looks.
 
 GitHub Actions builds the extension and attaches `final-days-extension.zip`
 and its SHA-256 checksum to releases. A native Windows version is being worked
