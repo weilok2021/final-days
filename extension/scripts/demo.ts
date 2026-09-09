@@ -8,7 +8,7 @@
 // Run from extension/:   npm run build && npm run demo
 // Output:                design/demo/ (override with FD_DEMO_OUT)
 // Date of birth shown:   FD_DEMO_BIRTH, default 2000-01-01
-// Music for the mp4:     FD_DEMO_MUSIC, default design/demo/music/contemplation.mp3
+// Music for the mp4:     FD_DEMO_MUSIC, default design/demo/music/happy-song.mp3
 // ffmpeg:                FD_FFMPEG, else ffmpeg on PATH, else the ffmpeg-static package
 //
 // The video tells the whole story in three beats, each in its own tab:
@@ -31,7 +31,7 @@ import { chromium, type BrowserContext, type Page } from 'playwright';
 const DIST = resolve(import.meta.dirname, '../dist');
 const OUT = resolve(import.meta.dirname, process.env['FD_DEMO_OUT'] ?? '../../design/demo');
 const BIRTH = process.env['FD_DEMO_BIRTH'] ?? '2000-01-01';
-const MUSIC = process.env['FD_DEMO_MUSIC'] ?? join(OUT, 'music', 'contemplation.mp3');
+const MUSIC = process.env['FD_DEMO_MUSIC'] ?? join(OUT, 'music', 'happy-song.mp3');
 const SITES = 'instagram.com, youtube.com';
 
 /** The page area of the video. The browser frame drawn above it makes the video 1280x800. */

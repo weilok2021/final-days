@@ -33,8 +33,12 @@ a script that regenerates all of them after a UI change.
   and `countdown-1280x800.png` (the countdown alone, at the store size).
 - The README shows the GIF above "What it does" and links the screenshot and
   the video with music. The developer section mentions `npm run demo`.
-- `design/demo/music/contemplation.mp3`: a 30 s clip of "Contemplation" by
-  Joth, CC0 from OpenGameArt. `design/demo/music/README.md` records the source.
+- `design/demo/music/happy-song.mp3`: a 30 s clip of "Happy Song" by Pro
+  Sensory, CC0 from OpenGameArt. `design/demo/music/README.md` records the
+  source. It replaced "Contemplation" by Joth (slow piano): the user asked for
+  a brighter bed for LinkedIn and portfolio use, listened to five CC0 clips
+  (Contemplation, Montage by wipics, Happy Song, Classical Pop by Pro Sensory,
+  The Days Roll On by Chance de la Soul) and chose Happy Song.
 
 ## Decisions
 
@@ -78,8 +82,7 @@ a script that regenerates all of them after a UI change.
 
 - The user may want their own birth date in the demo. The number shown is
   19,472 for 2000-01-01 on 2026-09-09. `FD_DEMO_BIRTH=YYYY-MM-DD npm run demo`.
-- Nobody has listened to the music clip against the video; the track was
-  chosen from a CC0 "calm / relaxing" collection by title and licence.
+- The user chose the music from 30 s clips, not against the finished video.
 - If the user wants an inline video player in the README, they upload
   `demo-music.mp4` (or `demo.mp4`) through the GitHub web editor and paste the
   returned URL; see Decisions.
