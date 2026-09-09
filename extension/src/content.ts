@@ -139,6 +139,7 @@
     } else if (checksInFlight > 0) {
       token = '';
     }
+    console.log(`[DEBUG-rd01] cs ${location.hostname} pagehide doc=${DOC_ID.slice(-4)} inflight=${checksInFlight} lostToken=${token === null ? 'null' : token.slice(-4) || '""'} t=${Date.now() % 100000}`);
     if (token === null) return;
     const lost: CountdownLostMessage = { type: 'countdownLost', doc: DOC_ID, token };
     try {
@@ -182,6 +183,7 @@
     }
     const message: HelloMessage = { type: 'hello', doc: DOC_ID, countdown: mode, host: location.hostname };
     let reply: HelloReply | undefined;
+    console.log(`[DEBUG-rd01] cs ${location.hostname} hello ${mode} doc=${DOC_ID.slice(-4)} t=${Date.now() % 100000}`);
     checksInFlight++;
     try {
       reply = await chrome.runtime.sendMessage<HelloMessage, HelloReply | undefined>(message);
@@ -193,6 +195,7 @@
     } finally {
       checksInFlight--;
     }
+    console.log(`[DEBUG-rd01] cs ${location.hostname} reply doc=${DOC_ID.slice(-4)} countdown=${reply ? String(!!reply.countdown) : 'none'} t=${Date.now() % 100000}`);
     if (!reply) return;
     if (reply.countdown) {
       showCountdown(reply.countdown);
