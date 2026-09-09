@@ -224,6 +224,12 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     // The day was claimed or released somewhere, or a setting changed: ask again on the next return.
     if (area === 'sync' || (area === 'local' && 'lastCountdown' in changes)) countdownDoneFor = '';
+    // The day was given back: a page went away before anyone saw its countdown.
+    // If this page is in front it asks again now, not on the next return. Its
+    // own check may have been refused a moment before the release landed (a
+    // redirect on a slow machine), and no other page is going to ask.
+    const released = area === 'local' && 'lastCountdown' in changes && changes['lastCountdown']?.newValue === undefined;
+    if (released && !countdown) void refresh('check');
   });
   chrome.runtime.onMessage.addListener((message: FdMessage) => {
     if (message?.type !== 'countdownPrompt') return;

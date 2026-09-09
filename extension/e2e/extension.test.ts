@@ -355,6 +355,23 @@ test('a page that redirects on arrival does not eat the day', SLOW, async () => 
   await page.mouse.click(640, 360);
 });
 
+test('a page refused the day shows the countdown when the day is given back while it is in front', SLOW, async () => {
+  // A redirect on a slow machine: the new page asks before the old page's
+  // release lands, so it is refused; then the day comes back and nobody else
+  // is asking. The page in front must ask again by itself. Here another tab
+  // takes the day and is closed within three seconds, which releases it.
+  await resetDay();
+  const other = await context.newPage();
+  await other.goto('https://tab-a.example/');
+  await countdown(other).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.goto('https://tab-b.example/');
+  await expectNoCountdown(page, 'the day is taken by another tab');
+  await page.bringToFront();
+  await other.close();
+  await countdown(page).waitFor({ state: 'visible', timeout: 10_000 });
+  await page.mouse.click(640, 360);
+});
+
 test('the popup shows the numbers', SLOW, async () => {
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);
