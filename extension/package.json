@@ -9,11 +9,13 @@
     "check": "tsc -p tsconfig.check.json",
     "test": "node --test \"test/**/*.test.ts\"",
     "icons": "node scripts/mkicon.mjs",
-    "e2e": "node --test \"e2e/**/*.test.ts\""
+    "e2e": "node --test \"e2e/**/*.test.ts\"",
+    "demo": "node scripts/demo.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.2.8",
     "@types/node": "^26.4.1",
+    "ffmpeg-static": "^5.3.0",
     "playwright": "^1.62.1",
     "typescript": "^7.0.2"
   }
