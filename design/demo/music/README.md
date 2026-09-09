@@ -1,6 +1,6 @@
 # Music for the demo video
 
-`contemplation.mp3` is the first 15 seconds of "Contemplation" by Joth,
+`contemplation.mp3` is the first 30 seconds of "Contemplation" by Joth,
 published under CC0 1.0 (public domain) on OpenGameArt:
 https://opengameart.org/content/contemplation-0
 

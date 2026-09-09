@@ -20,7 +20,7 @@ So I made Final Days. It is a Chrome and Edge extension. You enter your date of
 birth, and it uses an 80-year lifespan: 29,220 days. Once a day, the first time
 you come back to your browser, it shows the number of days you have left.
 
-![A web page goes dark and shows 19,472 days left, with a life bar under the number. A click brings the page back.](design/demo/demo.gif)
+![On the options page a date of birth is typed in and instagram.com and youtube.com are listed. Then instagram.com opens and goes dark, showing 19,472 days left with a life bar under the number; a click brings the feed back. youtube.com does the same.](design/demo/demo.gif)
 
 The [screenshot](design/demo/countdown-1280x800.png) and a
 [short video with music](design/demo/demo-music.mp4) are in `design/demo/`.
