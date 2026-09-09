@@ -1,132 +1,94 @@
 # Final Days
 
-**Every day left is one of your final days.**
+I got the idea for Final Days after reading Andrew Ng's short ebook, *How to
+Build a Career in AI*. In one passage, he asks how many days are in a typical
+human lifespan. Most people guess in the hundreds of thousands. When he
+calculated his own life expectancy, the result was 27,649 days. He printed that
+number and put it on his office wall because seeing it made the limited time
+harder to ignore.
 
-A typical human life is about 30,000 days. Ask people and most guess hundreds of
-thousands. Written down, the real number is small enough to be frightening, and
-frightening enough to be useful: whatever you are doing today, is it worth one of
-the days you have left?
+The number shocked me. A human life is only around 30,000 days—not the hundreds
+of thousands many of us imagine. I thought about how many of my days I had
+already spent without thinking about where they went, and how easily I was
+still wasting them on things that did not matter. That was difficult to admit.
 
-Final Days is a small add-on for the Chrome and Edge browsers that keeps that
-number in front of you. You enter one thing, your date of birth. Lifespan is
-fixed at 80 years, which is 29,220 days.
+I wanted a reminder that would make this harder to ignore. Not a notification
+that interrupts me all day, but something that appears once in a while and
+makes me stop and think about what I am doing with the days I have left.
+
+So I made Final Days. It is a Chrome and Edge extension. You enter your date of
+birth, and it uses an 80-year lifespan: 29,220 days. Once a day, the first time
+you come back to your browser, it shows the number of days you have left.
 
 ## What it does
 
-- **The countdown.** Once a day, the first time you come back to your browser,
-  the page you are looking at goes dark and shows how many days you have left,
-  with your life drawn as a bar under the number. One click and it is gone.
-  It never comes back until tomorrow.
-- **Or only on chosen sites.** In the options you can switch it to a list of
-  sites, for example YouTube or the social sites. It then shows up every time
-  you open one of them and nowhere else, so it stays off work pages and shared
-  screens.
-- **The toolbar icon.** The icon shows your life as a tiny bar. Click it to see
-  the numbers, show the countdown right now, or open the options.
+- The page goes dark and shows the days left, with your life drawn as a bar
+  beneath the number. Click anywhere to continue.
+- You can instead choose a list of sites—such as YouTube or social sites—and
+  show the countdown each time one of them opens.
+- The toolbar icon shows a small version of the bar. Its popup shows the
+  numbers, lets you show the countdown immediately, and opens the options.
 
-It works only inside the browser. It does not appear over other programs or on
-the desktop, and it cannot appear on the browser's own pages (settings, the new
-tab page, the extension store) or on PDFs, because browsers keep add-ons out of
-those.
+The extension runs only inside the browser. It does not appear over other
+programs, on browser pages such as Settings or New Tab, or on PDFs.
 
-## Install it
+## Install
 
-You need Chrome or Edge on a computer. It takes about two minutes.
+The extension is not in the Chrome or Edge store yet, so it is loaded from a
+folder:
 
-1. **Download the add-on.** Go to the
+1. Download `final-days-extension.zip` from the
    [latest release](https://github.com/weilok2021/final-days/releases/latest)
-   and download `final-days-extension.zip`. Unzip it. You get a folder with a
-   file called `manifest.json` inside.
-2. **Put the folder somewhere permanent**, for example in your Documents
-   folder. The browser reads from this folder every time it starts, so do not
-   delete it and try not to move it later (moving it means entering your date
-   of birth again).
-3. **Open the extensions page.** In Chrome, type `chrome://extensions` in the
-   address bar and press Enter. In Edge, type `edge://extensions`.
-4. **Turn on Developer mode.** In Chrome it is a switch at the top right of the
-   page. In Edge it is a switch in the left column.
-5. **Click "Load unpacked"** and choose the folder from step 1.
-6. **Enter your date of birth.** The options page opens by itself. Type your
-   date of birth and click Save. That is it.
+   and unzip it.
+2. Keep the unzipped folder somewhere permanent. It should contain
+   `manifest.json`.
+3. Open `chrome://extensions` in Chrome, or `edge://extensions` in Edge.
+4. Turn on **Developer mode**.
+5. Click **Load unpacked** and choose the unzipped folder.
+6. Enter your date of birth on the options page and save it.
 
-Optional: pin the icon so you can see it. Click the puzzle-piece button on the
-right of the address bar and click the pin next to Final Days.
-
-**Why "Developer mode"?** Browsers install add-ons with one click only from
-their own store. Final Days is not in a store yet, so the browser loads it from
-a folder instead, and it calls that Developer mode. It is the same add-on either
-way, and nothing else about your browser changes. If Final Days goes into the
-store later, this step goes away.
-
-## Update it
-
-When a new version comes out:
-
-1. Download the new `final-days-extension.zip` from the
-   [latest release](https://github.com/weilok2021/final-days/releases/latest).
-2. Unzip it into the same folder as before, replacing the old files.
-3. On the extensions page, find the Final Days card and click its reload
-   button (the circular arrow).
-
-Because the folder is the same, your date of birth and settings stay.
-
-## Remove it
-
-On the extensions page, click Remove on the Final Days card. Then delete the
-folder. Nothing else is left behind.
+You can pin Final Days from the browser's extensions menu if you want to see
+its icon. To update it later, replace the files in the same folder and click
+the reload button on its extensions card.
 
 ## Privacy
 
-Nothing leaves your browser. There is no account, no sign-in and no server.
+There is no account, server, or network connection. Your date of birth and
+settings stay in the browser's extension storage. If browser sync is enabled,
+they can follow your browser profile to another computer.
 
-- Your date of birth is kept in the browser's own storage for add-ons. If you
-  sign in to your browser and have sync on, it follows your profile to your
-  other computers, the same way your bookmarks do.
-- The add-on asks for two permissions when it installs. **Access to all
-  sites**: it needs this to draw the countdown over whatever page you are
-  looking at. It reads nothing from the page and changes nothing on it. **Idle
-  detection**: this is how it notices that you came back after a break or after
-  unlocking your computer.
-- It never connects to the internet.
-
-## Questions or problems
-
-Open an issue on the
-[issues page](https://github.com/weilok2021/final-days/issues) and describe
-what you saw.
+The extension needs access to pages so it can put the countdown over the page
+you are viewing. It does not read page content or change the page. It also uses
+idle detection to notice when you return after a break or unlock your computer.
 
 ## For developers
 
-The add-on lives in `extension/`, written in TypeScript for Manifest V3. A
-content script shows the countdown on the page, a background worker owns the
-settings, the numbers and the once-a-day rule, and the options page and popup
-are plain HTML. `SPEC.md` defines the behaviour every version follows.
-`design/` holds the mockups the design was chosen from and `notes/` the
-decision log of each feature.
+The extension is in `extension/`. It is TypeScript and Manifest V3. `SPEC.md`
+describes the behaviour, and `design/` and `notes/` contain the design work and
+decision notes.
 
-You need Node 22.18 or later (24 is what it is built with).
+Node 22.18 or later is required (the release build uses Node 24):
 
 ```sh
 cd extension
 npm ci
-npm run build       # writes extension/dist, the folder to load
-npm test            # unit tests for the shared logic
-npm run check       # type check
-npm run e2e         # drives the built extension in a headless Chromium
+npm run build
+npm test
+npm run check
+npm run e2e
 ```
 
-The build needs only the TypeScript compiler; there is no bundler. The
-end-to-end suite uses Playwright: run `npx playwright install chromium` once
-(on Linux add its system libraries with `npx playwright install-deps chromium`,
-or just `libnss3`, `libnspr4` and `libasound2`). It answers every website
-request itself with a small fake page, so it never touches the network.
+The build writes the unpacked extension to `extension/dist`. The end-to-end
+tests use Playwright; install its Chromium browser once with
+`npx playwright install chromium`.
 
-Releases are built by GitHub Actions: pushing a tag such as `v0.1.0` runs the
-checks, zips `extension/dist` and attaches it to a release together with a
-SHA-256 checksum file.
+GitHub Actions builds the extension and attaches `final-days-extension.zip`
+and its SHA-256 checksum to releases. A native Windows version is being worked
+on separately in the `feature/windows-v1` branch.
 
-A native Windows app that follows the same specification is on the
-`feature/windows-v1` branch and is not finished yet.
+## Questions or problems
+
+[Open an issue](https://github.com/weilok2021/final-days/issues).
 
 ## Licence
 
