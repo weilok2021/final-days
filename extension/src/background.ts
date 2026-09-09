@@ -39,7 +39,6 @@ chrome.idle.onStateChanged.addListener((state) => {
   if (state === 'active') void onReturn();
 });
 chrome.runtime.onMessage.addListener((message: FdMessage, sender, sendResponse) => {
-  console.log(`[DEBUG-rd01] worker got ${message?.type} doc=${String((message as { doc?: string })?.doc ?? '').slice(-4)} token=${String((message as { token?: string })?.token ?? '-').slice(-4)} from=${sender.url ?? '?'} tab=${sender.tab?.id ?? '-'} t=${Date.now() % 100000}`);
   if (message?.type === 'countdownLost') {
     void releaseCountdown(message.doc, message.token);
     return false;
@@ -199,7 +198,6 @@ async function writeBook(book: ClaimBook): Promise<void> {
 function claimCountdown(today: string, force: boolean, doc: string): Promise<string | null> {
   return serial(async () => {
     const book = await readBook();
-    console.log(`[DEBUG-rd01] claim doc=${doc.slice(-4)} force=${force} abandoned=${doc in book.abandoned} last=${(await readState()).lastCountdown || '-'} t=${Date.now() % 100000}`);
     if (doc in book.abandoned) {
       // the page died before hearing this answer
       delete book.abandoned[doc];
@@ -228,7 +226,6 @@ function releaseCountdown(doc: string, token: string): Promise<void> {
     const book = await readBook();
     book.abandoned[doc] = Date.now();
     if (token === '' && book.lastClaim?.doc === doc) token = book.lastClaim.token;
-    console.log(`[DEBUG-rd01] release doc=${doc.slice(-4)} token=${token.slice(-4) || '-'} stored=${(await readState()).countdownToken.slice(-4) || '-'} t=${Date.now() % 100000}`);
     if (token !== '') {
       const state = await readState();
       if (state.countdownToken === token) {

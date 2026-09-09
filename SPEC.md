@@ -116,7 +116,8 @@ thing, and this section is the record of those differences.
   show it exactly once. Pages without the content script (browser pages) fall
   through to the next page that has it. If the page goes away (a redirect, a
   navigation) within 3 seconds of the countdown appearing, nobody can have read
-  it: the day is released and the next page shows it. After 3 seconds on
+  it: the day is released and the next page shows it (or the page already in
+  front, if it asked while the day was still taken). After 3 seconds on
   screen it counts as seen, whether dismissed or left behind.
 - **Two modes for the countdown**, chosen on the options page. *Once a day* is
   section 3 as described above, and the default. *Every time you open one of
